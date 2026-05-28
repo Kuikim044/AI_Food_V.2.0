@@ -61,6 +61,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>(" ");
   const [sortField, setSortField] = useState<keyof Restaurant>("base_score");
   const [sortAscending, setSortAscending] = useState<boolean>(false);
+  const [showMobileFilters, setShowMobileFilters] = useState<boolean>(false);
   
   // Scraper & Loader Polling Lock Controls
   const [isScraping, setIsScraping] = useState<boolean>(false);
@@ -155,13 +156,25 @@ export default function App() {
     const table = payload?.table;
     if (!table?.rows || !table?.cols) return [];
 
-    const headerRow = table.rows[0]?.c || [];
-    const headers = headerRow.map((cell: any, idx: number) => {
-      const v = cell?.v;
-      return (v === null || v === undefined || `${v}`.trim() === '') ? `col_${idx}` : `${v}`.trim();
-    });
+    let headers: string[] = [];
+    let dataRows: any[] = [];
+    
+    const hasColLabels = table.cols.some((c: any) => c && c.label && c.label.trim() !== "");
+    if (hasColLabels) {
+      headers = table.cols.map((col: any, idx: number) => {
+        const label = col?.label;
+        return (label === null || label === undefined || `${label}`.trim() === '') ? `col_${idx}` : `${label}`.trim();
+      });
+      dataRows = table.rows;
+    } else {
+      const headerRow = table.rows[0]?.c || [];
+      headers = headerRow.map((cell: any, idx: number) => {
+        const v = cell?.v;
+        return (v === null || v === undefined || `${v}`.trim() === '') ? `col_${idx}` : `${v}`.trim();
+      });
+      dataRows = table.rows.slice(1);
+    }
 
-    const dataRows = table.rows.slice(1);
     return dataRows.map((r: any) => {
       const obj: any = {};
       const cells = r.c || [];
@@ -171,6 +184,74 @@ export default function App() {
       });
       return obj;
     });
+  };
+
+  const fetchFromCsv = async (sheetName: string): Promise<any[]> => {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(sheetName)}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`CSV HTTP status ${res.status}`);
+    const text = await res.text();
+    
+    const parseCsvLines = (csvText: string): string[][] => {
+      const lines: string[][] = [];
+      let row: string[] = [];
+      let inQuotes = false;
+      let currentValue = "";
+      
+      for (let i = 0; i < csvText.length; i++) {
+        const char = csvText[i];
+        const nextChar = csvText[i + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            currentValue += '"';
+            i++; 
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          row.push(currentValue);
+          currentValue = "";
+        } else if ((char === '\r' || char === '\n') && !inQuotes) {
+          row.push(currentValue);
+          currentValue = "";
+          if (row.length > 0 && (row.length > 1 || row[0] !== "")) {
+            lines.push(row);
+          }
+          row = [];
+          if (char === '\r' && nextChar === '\n') {
+            i++; 
+          }
+        } else {
+          currentValue += char;
+        }
+      }
+      
+      if (currentValue !== "" || row.length > 0) {
+        row.push(currentValue);
+        lines.push(row);
+      }
+      return lines;
+    };
+
+    const rows = parseCsvLines(text);
+    if (rows.length === 0) return [];
+    
+    const headers = rows[0].map((h, idx) => {
+      const name = h.trim();
+      return name === "" ? `col_${idx}` : name;
+    });
+
+    const result = [];
+    for (let r = 1; r < rows.length; r++) {
+      const obj: any = {};
+      const cells = rows[r];
+      headers.forEach((h, colIdx) => {
+        obj[h] = cells[colIdx] !== undefined ? cells[colIdx].trim() : '';
+      });
+      result.push(obj);
+    }
+    return result;
   };
 
   const fetchSheetDataPreferred = async (sheetName: string): Promise<{ source: string; data: any[] }> => {
@@ -187,8 +268,17 @@ export default function App() {
       throw new Error(`opensheet non-array: ${Object.prototype.toString.call(data)}`);
     } catch (e) {
       console.warn("opensheet failed, trying gviz fallback...", e);
-      const data = await fetchFromGviz(sheetName);
-      return { source: "gviz-fallback", data };
+      try {
+        const data = await fetchFromGviz(sheetName);
+        if (Array.isArray(data) && data.length > 0) {
+          return { source: "gviz-fallback", data };
+        }
+        throw new Error("Gviz returned empty or invalid rows");
+      } catch (e2) {
+        console.warn("gviz fallback failed, trying direct CSV download fallback...", e2);
+        const data = await fetchFromCsv(sheetName);
+        return { source: "csv-export-fallback", data };
+      }
     }
   };
 
@@ -214,7 +304,7 @@ export default function App() {
   const loadData = async (shouldShowToast = false) => {
     setIsLoading(true);
     setLoadingProgress(25);
-    setLoadingText("กำลังสืบค้นและระบุแผ่นงาน Google Sheets...");
+    setLoadingText("กำลังสืบค้นและระบุข้อมูล Google Sheet...");
     
     try {
       const resolved = await resolveWorkingSheet();
@@ -237,7 +327,7 @@ export default function App() {
       console.error("Database initialization failed:", e);
       triggerWin95Alert(
         "ข้อผิดพลาดการดึงตารางข้อมูล",
-        "ไม่สามารถเข้าถึงแผ่นงาน Google Sheets ได้ในเวลานี้",
+        "ไม่สามารถเข้าถึง Google Sheet ได้ในเวลานี้",
         `โปรดเช็คให้แน่ใจว่าอินเทอร์เน็ตยังเชื่อมต่อ และพิกัด Google Sheet ID มีสิทธิ์เข้าถึงเสถียรทั่วไป: ${e.message || e}`,
         true
       );
@@ -499,7 +589,7 @@ export default function App() {
       progress = Math.min(92, 15 + Math.round((elapsedSeconds / maxSeconds) * 77));
 
       setLoadingProgress(progress);
-      setLoadingText(`ระบบกำลังดำเนินกระบวนการจำลองและสแกนพิกัด Google Maps... (${elapsedSeconds}/${maxSeconds} วินาที)\nสัญญาณเชื่อมต่อสดกับ n8n กำลังแก้ไขแผ่นงาน...`);
+      setLoadingText(`ระบบกำลังดำเนินกระบวนการจำลองและสแกนพิกัด Google Maps... (${elapsedSeconds}/${maxSeconds} วินาที)\nสัญญาณเชื่อมต่อสดกับ n8n กำลังแก้ไข Google Sheet...`);
 
       try {
         const result = await fetchSheetDataPreferred(SHEET_NAME);
@@ -775,6 +865,22 @@ export default function App() {
       })
       .slice(0, 5);
 
+    // Advanced Extra metrics calculation
+    const totalReviews = filteredRestaurants.reduce((sum, r) => sum + (r.reviews || 0), 0);
+    const avgRatingRaw = filteredRestaurants.length ? (filteredRestaurants.reduce((sum, r) => sum + (r.rating || 0), 0) / filteredRestaurants.length) : 0;
+    const avgRating = round(avgRatingRaw, 2);
+
+    const pricedRestaurants = filteredRestaurants.filter(x => x.price > 0).sort((a, b) => a.price - b.price);
+    const cheapestEst = pricedRestaurants.length > 0 ? pricedRestaurants[0] : null;
+    const expensiveEst = pricedRestaurants.length > 0 ? pricedRestaurants[pricedRestaurants.length - 1] : null;
+
+    const topRatedEst = [...filteredRestaurants]
+      .filter(x => x.reviews >= 50)
+      .sort((a, b) => {
+        if (b.rating !== a.rating) return b.rating - a.rating;
+        return b.reviews - a.reviews;
+      })[0] || [...filteredRestaurants].sort((a, b) => b.rating - a.rating)[0];
+
     return {
       p25, p50, p75,
       sortedCats,
@@ -783,7 +889,12 @@ export default function App() {
       safestList,
       hiddenGemsList,
       budgetValueBest,
-      overpricedWarning
+      overpricedWarning,
+      totalReviews,
+      avgRating,
+      cheapestEst,
+      expensiveEst,
+      topRatedEst
     };
   }, [filteredRestaurants, systemStats]);
 
@@ -958,7 +1069,7 @@ export default function App() {
             </p>
             <div className="win95-inset h-5 w-full bg-gray-200 overflow-hidden relative">
               <div 
-                className="h-full bg-amber-800 transition-all duration-300"
+                className="h-full bg-[#000080] transition-all duration-300"
                 style={{ width: `${loadingProgress}%` }}
               />
               <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-black select-none">
@@ -1028,8 +1139,8 @@ export default function App() {
               <span className="bg-yellow-400 text-black text-xs font-black px-1.5 py-0.5 border border-black shadow">SYSTEM</span>
               <h1 className="text-xl md:text-3xl font-black tracking-tight select-none">AI FOOD ASSISTANT</h1>
             </div>
-            <p className="text-xs font-normal opacity-90 mt-1 dark:text-gray-100">
-              ⚡ Deep Decision Scoring Engine - รายการคัดสรรสโมสรผู้บริโภคประเมินสถิติสูงสุด
+            <p className="text-xs font-normal opacity-90 mt-1 dark:text-gray-100 font-bold">
+              ⚡ เว็บไซต์รวมร้านอาหารที่ได้รับการประเมินจาก AI ตัวช่วยเลือกร้านอาหารของคุณ
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 text-right md:ml-auto">
@@ -1040,7 +1151,7 @@ export default function App() {
               <span className="badge bg-purple-105 text-purple-800 border-purple-400 font-bold select-none text-[10px]">Google Gemini CLI</span>
               <span className="badge bg-green-105 text-green-800 border-green-400 font-bold select-none text-[10px]">Antigravity IDE</span>
             </div>
-            <p className="text-xs font-bold text-gray-800">ผู้จัดทำ: นาย ธีรเมธ แซ่เบ้</p>
+            <p className="text-xs font-bold text-white">ผู้จัดทำ: นาย ธีรเมธ แซ่เบ้</p>
             <div className="flex flex-wrap gap-x-2 items-center text-[10px] text-gray-700 justify-end">
               <span>ข้อมูลจาก: <b className="uppercase">{dataSource || "กำลังสแกน"}</b></span>
               <span>•</span>
@@ -1074,100 +1185,118 @@ export default function App() {
           {/* SIDEBAR FILTERS CLOUD */}
           <aside className="lg:col-span-3 flex flex-col gap-4">
             
-            {/* AREA FILTER */}
-            <div className="win95-window p-3">
-              <div className="win95-title-bar mb-2 select-none">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>📍 พิกัดย่านหลัก (Mapping 2.0)</span>
+            {/* Mobile collapsible Toggle Header */}
+            <div className="lg:hidden win95-window p-1">
+              <button
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="w-full win95-button bg-blue-800 text-white font-bold text-xs py-2 px-3 flex items-center justify-between gap-2 select-none"
+              >
+                <div className="flex items-center gap-1.5 text-left text-white">
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>📍 ตั้งค่าตัวกรองและดึงข้อมูล</span>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2 p-2 win95-inset bg-gray-50 max-h-56 overflow-y-auto scroll-win95">
-                <button
-                  onClick={() => setSelectedArea("all")}
-                  className={`win95-button text-xs font-bold flex-1 text-center py-1 min-w-[70px] ${selectedArea === "all" ? "win95-active font-black bg-[#e0e0e0]" : ""}`}
-                >
-                  ทั้งหมด ({processedData.length})
-                </button>
-                {Object.keys(areaMapping).map(area => {
-                  const countInArea = processedData.filter(item => {
-                    const keys = areaMapping[area];
-                    const content = `${item.area} ${item.name} ${item.address}`.toLowerCase();
-                    return keys.some(key => content.includes(key.toLowerCase()));
-                  }).length;
-                  
-                  return (
-                    <button
-                      key={area}
-                      onClick={() => setSelectedArea(area)}
-                      className={`win95-button text-xs font-bold py-1 px-1.5 min-w-[85px] truncate text-center ${selectedArea === area ? "win95-active font-black bg-[#e0e0e0]" : ""}`}
-                    >
-                      {area} ({countInArea})
-                    </button>
-                  );
-                })}
-              </div>
+                <span className="bg-gray-300 text-black px-1.5 border border-black text-[10px] uppercase font-black">
+                  {showMobileFilters ? "ปิดตัวกรอง ▲" : "เปิดตัวกรอง ▼"}
+                </span>
+              </button>
             </div>
 
-            {/* CATEGORY SELECTOR */}
-            <div className="win95-window p-3">
-              <div className="win95-title-bar mb-2 select-none">
-                <div className="flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>📊 ประเภทอาหารการเสิร์ฟ</span>
+            <div className={`${showMobileFilters ? "flex" : "hidden"} lg:flex flex-col gap-4`}>
+              {/* AREA FILTER */}
+              <div className="win95-window p-3">
+                <div className="win95-title-bar mb-2 select-none">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>📍 พิกัดย่านหลัก (Mapping 2.0)</span>
+                  </div>
                 </div>
-              </div>
-              <div className="p-1">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full p-1.5 font-bold win95-inset text-xs bg-white text-black outline-none focus:border-amber-600"
-                >
-                  <option value="all">แสดงทุกประเภท ({availableCategories.length})</option>
-                  {availableCategories.map(cat => {
-                    const countInCat = processedData.filter(item => item.category === cat).length;
+                <div className="flex flex-wrap gap-2 p-2 win95-inset bg-gray-50 max-h-56 overflow-y-auto scroll-win95">
+                  <button
+                    onClick={() => setSelectedArea("all")}
+                    className={`win95-button text-xs font-bold flex-1 text-center py-1 min-w-[70px] ${selectedArea === "all" ? "win95-active font-black bg-[#e0e0e0]" : ""}`}
+                  >
+                    ทั้งหมด ({processedData.length})
+                  </button>
+                  {Object.keys(areaMapping).map(area => {
+                    const countInArea = processedData.filter(item => {
+                      const keys = areaMapping[area];
+                      const content = `${item.area} ${item.name} ${item.address}`.toLowerCase();
+                      return keys.some(key => content.includes(key.toLowerCase()));
+                    }).length;
+                    
                     return (
-                      <option key={cat} value={cat}>
-                        {cat} ({countInCat})
-                      </option>
+                      <button
+                        key={area}
+                        onClick={() => setSelectedArea(area)}
+                        className={`win95-button text-xs font-bold py-1 px-1.5 min-w-[85px] truncate text-center ${selectedArea === area ? "win95-active font-black bg-[#e0e0e0]" : ""}`}
+                      >
+                        {area} ({countInArea})
+                      </button>
                     );
                   })}
-                </select>
-              </div>
-            </div>
-
-            {/* QUICK SEED METADATA */}
-            <div className="win95-window p-3 select-none">
-              <div className="win95-title-bar mb-2">
-                <div className="flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5" />
-                  <span>🗄️ ความเรียบร้อยชีตข้อมูล</span>
                 </div>
               </div>
-              <div className="win95-inset p-2.5 bg-white text-[11px] leading-relaxed text-gray-800 space-y-1">
-                <p>• <b>บีบอัดชื่อซ้ำ:</b> คัดแยกเฉพาะร้านไม่พิมพ์ทับกัน</p>
-                <p>• <b>คัดกรองพิกัด:</b> แปลงค่าที่อยู่ดิบเป็นเขตย่านภูมิภาค</p>
-                <p>• <b>ป้ายเตือน Confidence:</b> ดัชนีประเมินรอบทอยสถิติต่ำ</p>
-                <p>• <b>แบบจำลองงบประมาณ:</b> ถักทอช่วงราคากรณีขาดตก</p>
-              </div>
-            </div>
 
-            {/* GOOGLE SHEETS REFRESH BUTTON */}
-            <div className="win95-window p-3">
-              <div className="win95-title-bar mb-2 select-none">
-                <div className="flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5" />
-                  <span>🔄 ดึงข้อมูลความปลอดภัยล่าสุด</span>
+              {/* CATEGORY SELECTOR */}
+              <div className="win95-window p-3">
+                <div className="win95-title-bar mb-2 select-none">
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>📊 ประเภทอาหาร</span>
+                  </div>
+                </div>
+                <div className="p-1">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full p-1.5 font-bold win95-inset text-xs bg-white text-black outline-none focus:border-amber-600"
+                  >
+                    <option value="all">แสดงทุกประเภท ({availableCategories.length})</option>
+                    {availableCategories.map(cat => {
+                      const countInCat = processedData.filter(item => item.category === cat).length;
+                      return (
+                        <option key={cat} value={cat}>
+                          {cat} ({countInCat})
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
               </div>
-              <button
-                onClick={() => loadData(true)}
-                disabled={isLoading || isScraping}
-                className="w-full win95-button bg-green-700 text-white font-bold text-xs py-2 px-3 hover:bg-green-800 disabled:opacity-50 select-none flex items-center justify-center gap-2"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>รีเฟรชข้อมูลจาก Google Sheet</span>
-              </button>
+
+              {/* QUICK SEED METADATA */}
+              <div className="win95-window p-3 select-none">
+                <div className="win95-title-bar mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5" />
+                    <span>🗄️ การจัดระเบียบตารางข้อมูล</span>
+                  </div>
+                </div>
+                <div className="win95-inset p-2.5 bg-white text-[11px] leading-relaxed text-gray-800 space-y-1">
+                  <p>• <b>กรองรายชื่อซ้ำ:</b> แสดงเฉพาะรายชื่อร้านที่ไม่ซ้ำกันในตาราง</p>
+                  <p>• <b>จัดกลุ่มตามย่าน:</b> จัดระเบียบพิกัดและที่อยู่ให้อ่านเป็นโซนย่านที่ชัดเจน</p>
+                  <p>• <b>แจ้งเตือนความถูกต้องต่ำ:</b> ขึ้นป้ายเตือนกรณีร้านมีคะแนนรีวิวน้อย</p>
+                  <p>• <b>ประมาณการช่วงราคา:</b> คำนวณช่วงราคาเฉลี่ยต่อคนกรณีที่ไม่มีราคาป้อนใน Google Sheet</p>
+                </div>
+              </div>
+
+              {/* GOOGLE SHEETS REFRESH BUTTON */}
+              <div className="win95-window p-3">
+                <div className="win95-title-bar mb-2 select-none">
+                  <div className="flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5" />
+                    <span>🔄 จัดการข้อมูล Google Sheet</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => loadData(true)}
+                  disabled={isLoading || isScraping}
+                  className="w-full win95-button bg-green-700 text-white font-bold text-xs py-2 px-3 hover:bg-green-800 disabled:opacity-50 select-none flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>รีเฟรชข้อมูลจาก Google Sheet</span>
+                </button>
+              </div>
             </div>
 
           </aside>
@@ -1220,7 +1349,7 @@ export default function App() {
 
             {/* TOP 3 INTELLIGENT EXPERT DECISIONS RECOMMENDATION PANEL */}
             <div className="win95-window overflow-hidden shadow-md">
-              <div className="win95-title-bar bg-amber-800 select-none">
+              <div className="win95-title-bar bg-[#000080] select-none">
                 <div className="flex items-center gap-1.5 font-black">
                   <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300 animate-pulse" />
                   <span>⭐ TOP 3 AI INTELLIGENCE SELECTION (ระดับยอดมงกุฎพรีเมียม)</span>
@@ -1233,9 +1362,9 @@ export default function App() {
                 <div className="flex flex-wrap gap-2 md:gap-3">
                   {[
                     { val: "default", label: "⚖️ สมดุลความคุ้มค่า", hint: "คํานวณเรตติ้ง ยอดรีวิว และราคา อย่างกลมกลืน" },
-                    { val: "safe", label: "🛡️ เลี่ยงคนไม่รู้ (ยอดรีวิวสูงสุด)", hint: "เน้นร้านขนาดใหญ่ที่มีฐานพยานยืนยันมากเป็นหลัก" },
+                    { val: "safe", label: "🛡️ ปลอดภัย (ยอดรีวิวสูงสุด)", hint: "เน้นร้านขนาดใหญ่ที่มีฐานพยานยืนยันมากเป็นหลัก" },
                     { val: "cheap", label: "💰 คืนงบกระเป๋า (ประหยัดค่าใช้จ่าย)", hint: "ปรับเพิ่มน้ำหนักเมนูราคาประหยัดต่อคน" },
-                    { val: "fast", label: "⚡ ด่วนจี๋สี่คู่ (อาหารกินไว)", hint: "คัดกรองกลุ่มราเมง/ตามสั่ง/คาเฟ่ ที่รอบสลับโต๊ะไว" },
+                    { val: "fast", label: "⚡ ด่วนจี๋! (อาหารกินไว)", hint: "คัดกรองกลุ่มราเมง/ตามสั่ง/คาเฟ่ ที่รอบสลับโต๊ะไว" },
                     { val: "work", label: "💼 คุยธุรกิจหรู (คุยงาน)", hint: "ถ่วงน้ำหนักคาเฟ่เบเกอรี่หรืองานสเต็กเป็นองค์กรหลัก" },
                     { val: "large", label: "👥 ทีมใหญ่สังสรรค์ (8-12 คน)", hint: "เจาะจงกลุ่มชาบูปิ้งย่างสำหรับเลี้ยงเปิดใจพนักงาน" }
                   ].map(scenario => (
@@ -1273,10 +1402,10 @@ export default function App() {
                     return (
                       <div 
                         key={item.name} 
-                        className={`win95-window flex flex-col p-0.5 transition-all duration-300 relative ${idx === 0 ? "premium-rank-1 border-amber-700 border-4 scale-[1.01]" : ""}`}
+                        className={`win95-window flex flex-col p-0.5 transition-all duration-300 relative ${idx === 0 ? "premium-rank-1 border-[#000080] border-4 scale-[1.01]" : ""}`}
                       >
                         {/* Title Bar Card */}
-                        <div className={`win95-title-bar ${idx === 0 ? "bg-amber-800" : "bg-gray-700"} select-none`}>
+                        <div className={`win95-title-bar ${idx === 0 ? "bg-[#000080]" : "bg-[#4a505a]"} select-none`}>
                           <span className="font-black text-xs">#{idx + 1} AI CHOICE</span>
                           <span className="text-[10px] bg-white text-black px-1 border border-black font-black">
                             {customScenarioScoreValue}% SCORE
@@ -1352,34 +1481,34 @@ export default function App() {
                           <div className="mt-3.5 pt-2 border-t border-dashed border-gray-400">
                             <details className="win95-inset p-1.5 bg-white text-[10px] leading-tight text-gray-800">
                               <summary className="cursor-pointer font-black text-blue-900 hover:underline select-none outline-none">
-                                🔬 วิเคราะห์เชิงสถิติเบื้องหลัง (Deep Reason)
+                                🔬 วิเคราะห์เกณฑ์คะแนนเบื้อหลัง (Deep Reason)
                               </summary>
                               
                               <div className="mt-2 text-[10px] space-y-2 leading-relaxed">
                                 {/* Competitor delta comparison */}
                                 <div className="win95-inset p-1.5 bg-gray-50">
-                                  <span className="font-bold text-gray-700 block mb-1">📊 เปรียบเทียบกับคู่แข่งขัน:</span>
+                                  <span className="font-bold text-gray-700 block mb-1">📊 เปรียบเทียบกับร้านอื่น:</span>
                                   {idx === 0 ? (
-                                    <span>ยึดหัวหาดอันดับหนึ่งในตระกูลสถิติย่าน ริมเส้นถ่วงดุลราคาเสถียรที่สุดในหมวดผลลัพธ์</span>
+                                    <span>ได้รับคะแนนรวมสูงสุดในกลุ่มย่านนี้ มีมิติคะแนนเฉลี่ยเป็นที่หนึ่งในหมวดที่เลือก</span>
                                   ) : (
-                                    <span>เป็นตัวเลือกสำรองที่ได้แต้มเฉือนต่ำกว่าข้อเสนอลำดับก่อนหน้าเล็กน้อยที่พิกัดงบการเฉลี่ย</span>
+                                    <span>เป็นตัวเลือกแนะนำลำดับถัดมาที่มีคะแนนโดดเด่นและสัดส่วนความคุ้มค่าใกล้เคียงกับกลุ่มผู้นำ</span>
                                   )}
                                 </div>
 
                                 {/* Dataset constraints honesty declaration */}
                                 <div className="win95-inset p-1.5 bg-gray-50">
-                                  <span className="font-bold text-gray-700 block mb-1">📃 หลักฐานดิบที่มีการป้อน (Grounded Evidence):</span>
-                                  <span>พิกัด {item.area} เรตโหวต {item.rating} ดาว ฐานผู้ส่งคำร้องจอดค้าง {item.reviews} บัญชี <i>(*ระบบไม่ประเมินเรื่องคุณภาพคิวหน้าร้านจริงเนื่องจาก Google Sheet ไม่มีช่องระบุตัวแปร)</i></span>
+                                  <span className="font-bold text-gray-700 block mb-1">📃 ข้อมูลดิบจาก Google Sheet (Grounded Evidence):</span>
+                                  <span>ย่าน {item.area} | คะแนน {item.rating} ดาว | ผู้รีวิว {item.reviews} บัญชี <i>(*หมายเหตุ: คำนวณเบื้องต้นอ้างอิงสถิติที่มีการอัปเดตหลักใน Google Sheet)</i></span>
                                 </div>
 
                                 {/* Score components breakdown */}
                                 <div className="space-y-1">
-                                  <span className="font-bold text-gray-700 block">📐 องค์ประกอบคะแนน {selectedScenario} Scenario:</span>
+                                  <span className="font-bold text-gray-700 block">📐 รายละเอียดสัดส่วนคะแนนแยกตามหัวข้อ ({selectedScenario}):</span>
                                   <div className="grid grid-cols-2 gap-1 text-[9px]">
-                                    <div className="bg-blue-50/50 p-1 win95-inset">เรตติ้งสัมผัส: {(item.scenario_parts?.quality || 0).toFixed(0)}%</div>
-                                    <div className="bg-purple-50/50 p-1 win95-inset">ฐานหงายไพ่: {(item.scenario_parts?.popularity || 0).toFixed(0)}%</div>
-                                    <div className="bg-green-50/50 p-1 win95-inset">สิทธิคุ้มเงิน: {(item.scenario_parts?.budget || 0).toFixed(0)}%</div>
-                                    <div className="bg-amber-50/50 p-1 win95-inset">กลุ่มจำแนกประเภท: {(item.scenario_parts?.categoryFit || 0).toFixed(0)}%</div>
+                                    <div className="bg-blue-50/50 p-1 win95-inset">คะแนนรีวิวร้าน: {(item.scenario_parts?.quality || 0).toFixed(0)}%</div>
+                                    <div className="bg-purple-50/50 p-1 win95-inset">คะแนนความนิยม: {(item.scenario_parts?.popularity || 0).toFixed(0)}%</div>
+                                    <div className="bg-green-50/50 p-1 win95-inset">คะแนนความคุ้มค่าเงิน: {(item.scenario_parts?.budget || 0).toFixed(0)}%</div>
+                                    <div className="bg-amber-50/50 p-1 win95-inset">ความสอดคล้องประเภท: {(item.scenario_parts?.categoryFit || 0).toFixed(0)}%</div>
                                   </div>
                                 </div>
                               </div>
@@ -1446,7 +1575,7 @@ export default function App() {
               </div>
 
               {/* Table wrapper scrolls retro */}
-              <div className="max-h-[380px] overflow-y-auto scroll-win95 bg-white">
+              <div className="max-h-[380px] overflow-y-auto overflow-x-auto scroll-win95 bg-white">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="sticky top-0 bg-gray-200 z-10 select-none">
                     <tr className="border-b-2 border-black">
@@ -1525,7 +1654,7 @@ export default function App() {
 
             {/* AI ANALYTICAL REPORT INSIGHTS 2.0 PANEL */}
             <div className="win95-window">
-              <div className="win95-title-bar bg-amber-950 select-none">
+              <div className="win95-title-bar bg-[#0a246a] select-none">
                 <div className="flex items-center gap-1.5 font-bold">
                   <TrendingUp className="w-4 h-4 text-yellow-300" />
                   <span>🤖 แฟ้มรายงาน AI ANALYSIS & INSIGHTS 2.0 (วิเคราะห์ตลาดและพฤติกรรมผู้บริโภค)</span>
@@ -1537,51 +1666,94 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-sans">
                     
                     {/* General Market parameters */}
-                    <div className="win95-window p-2 bg-white">
-                      <div className="win95-title-bar bg-blue-800 select-none">
-                        <span>1) ข้อมูลภาพรวมตลาดและระดับราคาเฉลี่ย</span>
-                      </div>
-                      <div className="p-2 text-xs text-gray-800 space-y-1.5 leading-relaxed">
-                        <p>• <b>กลุ่มตัวอย่างทั้งหมด:</b> มีความหนาแน่นร้านค้ารองรับ {filteredRestaurants.length} รายการในการคำนวณเบลนด์</p>
-                        <p>• <b>งบประมาณประเมินเฉลี่ย:</b>ตกอยู่ที่ ~{systemStats.avgPrice}฿ ต่อคน</p>
-                        <p>• <b>ขอบเขต Quartile เปรียบเทียบ:</b></p>
-                        <div className="win95-inset p-2 bg-gray-50 text-[11px] grid grid-cols-3 gap-1 divide-x divide-gray-300">
-                          <div className="text-center"><b>P25 (ราคาเริ่มต้น):</b><br/>{marketInsights.p25}฿</div>
-                          <div className="text-center pl-1"><b>P50 (มัธยฐาน):</b><br/>{marketInsights.p50}฿</div>
-                          <div className="text-center pl-1"><b>P75 (ค่าพรีเมียม):</b><br/>{marketInsights.p75}฿</div>
+                    <div className="win95-window p-2 bg-white flex flex-col justify-between">
+                      <div>
+                        <div className="win95-title-bar bg-[#104c8a] select-none">
+                          <span>1) ข้อมูลภาพรวมตลาดและระดับราคา (Market Overview & Price Analysis)</span>
+                        </div>
+                        <div className="p-2 text-xs text-gray-800 space-y-1.5 leading-relaxed">
+                          <p>• <b>กลุ่มตัวอย่างทั้งหมด (Total Stores):</b> มีความหนาแน่นร้านค้ารองรับ {filteredRestaurants.length} รายการในการประมวลผล</p>
+                          <p>• <b>งบประมาณประเมินเฉลี่ย (Average Cost):</b> ตกอยู่ที่ ~{systemStats.avgPrice}฿ ต่อคน</p>
+                          <p>• <b>รวมจำนวนรีวิวทั้งหมด (Total Reviews Cohort):</b> {marketInsights.totalReviews ? marketInsights.totalReviews.toLocaleString() : 0} รีวิว (Reviews)</p>
+                          <p>• <b>คะแนนเฉลี่ยทั้งกลุ่ม (Cohort Avg Rating):</b> {marketInsights.avgRating} ⭐</p>
+                          <p>• <b>ขอบเขตราคา Quartile เปรียบเทียบ (Price Distribution):</b></p>
+                          <div className="win95-inset p-2 bg-gray-50 text-[11px] grid grid-cols-3 gap-1 divide-x divide-gray-300">
+                            <div className="text-center"><b>P25 (ราคาเริ่มต้น):</b><br/>{marketInsights.p25}฿</div>
+                            <div className="text-center pl-1"><b>P50 (มัธยฐาน/Median):</b><br/>{marketInsights.p50}฿</div>
+                            <div className="text-center pl-1"><b>P75 (ราคาพรีเมียม):</b><br/>{marketInsights.p75}฿</div>
+                          </div>
                         </div>
                       </div>
+                      
+                      {marketInsights.sortedCats && marketInsights.sortedCats.length > 0 && (
+                        <div className="p-2 border-t border-dashed border-gray-300 text-xs">
+                          <p className="font-bold mb-1 text-[11px] text-gray-700">• สัดส่วนประเภทยอดยอดนิยม (Top Categories):</p>
+                          <div className="flex flex-wrap gap-1">
+                            {marketInsights.sortedCats.slice(0, 3).map(([cat, count]) => (
+                              <span key={cat} className="badge bg-slate-100 text-[10px] px-1 border border-gray-300">
+                                {cat} ({count} ร้าน / {Math.round((count / filteredRestaurants.length) * 100)}%)
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Dominant Categories & Area Comparison */}
-                    <div className="win95-window p-2 bg-white">
-                      <div className="win95-title-bar bg-purple-800 select-none">
-                        <span>2) เปรียบเทียบศักยภาพย่านความนิยมหลัก</span>
-                      </div>
-                      <div className="p-2 text-xs text-gray-800 space-y-2 max-h-[160px] overflow-y-auto scroll-win95">
-                        {marketInsights.areaStats.map(stat => (
-                          <div key={stat.area} className="flex justify-between items-center text-[11px] border-b border-gray-200 pb-1 last:border-0 last:pb-0">
-                            <span className="font-bold underline">{stat.area}</span>
-                            <span className="text-gray-600">มี ({stat.count} ร้าน) | เรตเฉลี่ย: <b>{stat.avgRating}</b>⭐ | บิลเฉลี่ย: <b>{stat.avgPrice}฿</b></span>
+                    <div className="win95-window p-2 bg-white flex flex-col justify-between">
+                      <div>
+                        <div className="win95-title-bar bg-[#104c8a] select-none">
+                          <span>2) เปรียบเทียบศักยภาพย่านและการกระจายตัว (Location & Extreme Analysis)</span>
+                        </div>
+                        <div className="p-2 text-xs text-gray-800 space-y-1.5 leading-relaxed">
+                          <div className="max-h-[100px] overflow-y-auto scroll-win95 space-y-1 border-b border-dashed border-gray-200 pb-1.5">
+                            {marketInsights.areaStats.map(stat => (
+                              <div key={stat.area} className="flex justify-between items-center text-[11px] border-b border-gray-150 pb-0.5 last:border-0 last:pb-0">
+                                <span className="font-bold underline">{stat.area}</span>
+                                <span className="text-gray-600">มี ({stat.count} ร้าน) | เรตเฉลี่ย: <b>{stat.avgRating}</b>⭐ | บิลเฉลี่ย: <b>{stat.avgPrice}฿</b></span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                          
+                          <div className="text-[10.5px] text-gray-700 space-y-1 mt-1">
+                            <p>• <b>Lowest Cost (ราคาเข้าถึงง่ายที่สุด):</b> <span className="text-green-800 font-bold">{marketInsights.cheapestEst ? `${marketInsights.cheapestEst.name} (~${marketInsights.cheapestEst.price}฿/คน ณ ย่าน ${marketInsights.cheapestEst.area})` : "N/A"}</span></p>
+                            <p>• <b>Highest Cost (ราคาจำลองสูงที่สุด):</b> <span className="text-red-800 font-bold">{marketInsights.expensiveEst ? `${marketInsights.expensiveEst.name} (~${marketInsights.expensiveEst.price}฿/คน ณ ย่าน ${marketInsights.expensiveEst.area})` : "N/A"}</span></p>
+                            <p>• <b>Rating Leader (ขวัญใจคะแนนรีวิว):</b> <span className="text-blue-900 font-bold">{marketInsights.topRatedEst ? `${marketInsights.topRatedEst.name} (${marketInsights.topRatedEst.rating}⭐ / ${marketInsights.topRatedEst.reviews} รีวิว)` : "N/A"}</span></p>
+                          </div>
+                        </div>
                       </div>
+
+                      {marketInsights.areaStats && marketInsights.areaStats.filter(s => s.count > 0).length > 0 && (
+                        <div className="p-2 bg-indigo-50/50 text-[10.5px] border-t border-indigo-100 text-gray-800 space-y-0.5">
+                          {(() => {
+                            const validAreas = marketInsights.areaStats.filter(s => s.count > 0);
+                            const bestRated = [...validAreas].sort((a, b) => b.avgRating - a.avgRating)[0];
+                            const lowestPrice = [...validAreas].sort((a, b) => a.avgPrice - b.avgPrice)[0];
+                            return (
+                              <>
+                                <p>• <b>⭐ Best Rated Area:</b> ย่าน <b>{bestRated ? bestRated.area : "N/A"}</b> มีคะแนนรีวิวสูงสุดเฉลี่ย {bestRated ? bestRated.avgRating : 0}⭐</p>
+                                <p>• <b>💰 Cost-Effective Area:</b> ย่าน <b>{lowestPrice ? lowestPrice.area : "N/A"}</b> มีค่าใช้จ่ายเฉลี่ยประหยัดที่สุด ~{lowestPrice ? lowestPrice.avgPrice : 0}฿/คน</p>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
 
                     {/* Hidden Gems and Risky warn indicators */}
                     <div className="win95-window p-2 bg-white col-span-1 md:col-span-2">
                       <div className="win95-title-bar bg-[#3e4450] select-none">
-                        <span>3) หมวดคัดเลือกพิเศษ (Hidden Gems และ ความไม่แน่ใจของสถิติ)</span>
+                        <span>3) หมวดวิเคราะห์พิเศษ (Hidden Gems และ Premium/High-Price Outliers)</span>
                       </div>
                       <div className="p-2.5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
                         
                         {/* Hidden Gems Column */}
                         <div className="space-y-1.5">
-                          <span className="font-extrabold text-[12px] text-green-800 block">✨ อันดับวัตถุดิบซ่อนหา (Hidden Gems)</span>
-                          <span className="text-[10px] text-gray-500 block leading-tight">เงื่อนไข: เรตติ้งสูงกว่าหรือเท่ากับ 4.5⭐ แต่ประวัติคนโหวตน้อยกว่า 150 คน (พิกัดป้ายอันดับน่าหลงใหลแต่คุณอาจต้องพรูฟเสถียรความรสชาติคนเดียว)</span>
+                          <span className="font-extrabold text-[12px] text-green-800 block">✨ ร้านลับคุณภาพยอดเยี่ยม (Hidden Gems)</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">เกณฑ์การคัดเลือก (Criteria): เรตติ้งสูงตั้งแต่ 4.5⭐ ขึ้นไป แต่ยังมีจำนวนรีวิวน้อยกว่า 150 ครั้ง เหมาะสำหรับการไปค้นพบรสชาติที่ยอดเยี่ยมในมุมมองใหม่</span>
                           <div className="space-y-1.5">
                             {marketInsights.hiddenGemsList.length === 0 ? (
-                              <span className="text-[11px] text-gray-400 block italic">ไม่พบร้านเข้าแก๊ปกลุ่มซ่อนพิเศษ</span>
+                              <span className="text-[11px] text-gray-400 block italic">ไม่พบร้านเข้าเกณฑ์กลุ่มร้านแนะนำลับพิเศษ</span>
                             ) : (
                               marketInsights.hiddenGemsList.map(gem => (
                                 <div key={gem.name} className="win95-inset p-1 bg-white text-[10.5px] flex justify-between gap-1">
@@ -1595,22 +1767,66 @@ export default function App() {
 
                         {/* Potentially overpriced Column */}
                         <div className="space-y-1.5">
-                          <span className="font-extrabold text-[12px] text-red-800 block">⚠️ ร้านเสี่ยงใช้คัดถอดสมรสราคา (Overpriced Outlier Profile)</span>
-                          <span className="text-[10px] text-gray-500 block leading-tight">เกณฑ์: ราคาสูงเกินขอบเขต P75 {marketInsights.p75}฿ แต่คะแนน AI Decision ต่ำกว่ามาตรฐานความคุ้มทุน</span>
+                          <span className="font-extrabold text-[12px] text-red-800 block">⚠️ กลุ่มร้านราคาพรีเมียม / ราคาสูงเกินคะแนนเฉลี่ย (Premium & High-Price Outliers)</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">เกณฑ์การประเมิน (Criteria): ราคาสูงกว่าระดับ P75 ({marketInsights.p75}฿) แต่เมื่อคำนวณสัดส่วนคะแนนรวม AI Decision คะแนนตกลงต่ำกว่ามาตรฐานความคุ้มทุน</span>
                           <div className="space-y-1.5">
                             {marketInsights.overpricedWarning.length === 0 ? (
-                              <span className="text-[11px] text-gray-400 block italic">ไม่มีรายการร้านโพล่งราคาขัดประสิทธิภาพ</span>
+                              <span className="text-[11px] text-gray-400 block italic">ไม่มีรายการร้านอร่อยที่ราคาสูงเกินเกณฑ์สถิติความคุ้มค่ารอบนี้</span>
                             ) : (
                               marketInsights.overpricedWarning.slice(0, 3).map(warn => (
                                 <div key={warn.name} className="win95-inset p-1 bg-white text-[10.5px] flex justify-between gap-1">
                                   <span className="font-bold text-red-800 truncate">{warn.name}</span>
-                                  <span className="font-bold whitespace-nowrap">{warn.price}฿ | AI: {warn.base_score}%</span>
+                                  <span className="font-bold whitespace-nowrap">{warn.price}฿ | คะแนนสถิติ: {warn.base_score}%</span>
                                 </div>
                               ))
                             )}
                           </div>
                         </div>
 
+                      </div>
+                    </div>
+
+                    {/* Top Picks Recommendations */}
+                    <div className="win95-window p-2 bg-white col-span-1 md:col-span-2">
+                      <div className="win95-title-bar bg-green-900 select-none">
+                        <span>4) ผลวิเคราะห์ร้านแนะนำพิเศษจากโมเดลคะแนน (AI Decision Top Picks)</span>
+                      </div>
+                      <div className="p-2.5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Best Budget Value Options */}
+                        <div className="space-y-1.5">
+                          <span className="font-extrabold text-[12px] text-green-800 block">⭐ Best Value Picks (เมนูยอดเยี่ยมคุ้มค่าเงินสูงสุด)</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">คัดเลือกจากร้านที่ผู้ใช้งานเฉลี่ยชื่นชอบคะแนนประเมินอยู่ในแถวหน้า แต่ราคาเหมาะสมที่สุด ให้ความสมดุลด้านราคาต่อหัวที่ยอดเยี่ยม</span>
+                          <div className="space-y-1.5">
+                            {marketInsights.budgetValueBest && marketInsights.budgetValueBest.length > 0 ? (
+                              marketInsights.budgetValueBest.slice(0, 3).map(item => (
+                                <div key={item.name} className="win95-inset p-1 bg-white text-[10.5px] flex justify-between gap-1 items-center">
+                                  <span className="font-bold text-gray-900 truncate">{item.name}</span>
+                                  <span className="text-green-700 font-bold whitespace-nowrap text-[10px]">{item.display_price} | คะแนนความคุ้มค่า {item.base_score}%</span>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-[11px] text-gray-400 block italic">ไม่มีรายการแนะนำที่สอดคล้องตามเกณฑ์สถิตินี้</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Safest / Most Established Picks */}
+                        <div className="space-y-1.5">
+                          <span className="font-extrabold text-[12px] text-blue-800 block">👑 Most Established Picks (ร้านขวัญใจมหาชน คะแนนรีวิวเสถียรที่สุด)</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">วิเคราะห์จากกลุ่มร้านที่มีปริมาณจำนวนผู้รีวิวสูงสุด มีความคงเส้นคงวา มีอันตรายหรือความเสี่ยงต่ำที่สุดในการไปลิ้มลองความอร่อย</span>
+                          <div className="space-y-1.5">
+                            {marketInsights.safestList && marketInsights.safestList.length > 0 ? (
+                              marketInsights.safestList.slice(0, 3).map(item => (
+                                <div key={item.name} className="win95-inset p-1 bg-white text-[10.5px] flex justify-between gap-1 items-center">
+                                  <span className="font-bold text-gray-900 truncate">{item.name}</span>
+                                  <span className="text-indigo-800 font-bold whitespace-nowrap text-[10px]">⭐ {item.rating} ({item.reviews} รีวิว)</span>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-[11px] text-gray-400 block italic">ไม่มีรายการที่ผ่านเกณฑ์ปริมาณรีวิว</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1625,8 +1841,8 @@ export default function App() {
 
             {/* HIGH-PRECISION DETAILED HUMAN REVIEW FLAGS (LOW CONFIDENCE) PANEL */}
             {/* Relocated and Renamed to Human Review Queue */}
-            <div className="win95-window border-4 border-orange-950 shadow">
-              <div className="win95-title-bar bg-orange-950 select-none">
+            <div className="win95-window border-4 border-slate-700 shadow">
+              <div className="win95-title-bar bg-slate-700 select-none">
                 <div className="flex justify-between items-center w-full">
                   <div className="flex items-center gap-1.5 font-bold">
                     <AlertTriangle className="w-4 h-4 text-yellow-300 fill-yellow-300 animate-pulse" />
@@ -1792,7 +2008,7 @@ export default function App() {
       {/* --- FLOATING VINTAGE CHAT WIDGET CONTROL --- */}
       {isChatOpen && (
         <div 
-          className="fixed bottom-4 right-4 w-80 md:w-96 win95-window z-40 shadow-2xl animate-fade-in"
+          className="fixed bottom-4 right-4 w-[calc(100vw-32px)] md:w-96 max-w-[380px] win95-window z-40 shadow-2xl animate-fade-in"
           id="chat-assistant-panel"
         >
           {/* Header Dragbar */}

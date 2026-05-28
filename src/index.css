@@ -7,12 +7,12 @@
   --win-white: #ffffff;
   --win-dark-gray: #808080;
   --win-border-light: #dfdfdf;
-  --win-pink: #d97706;
-  --win-blue: #7c2d12;
+  --win-pink: #000080; /* Perfect Retro Navy Blue */
+  --win-blue: #104c8a; /* Sleek Active Blue */
 }
 
 body {
-  background-color: #f59e0b;
+  background-color: #3b747d; /* Stunning classic Windows slate-teal desktop background */
   font-family: 'Kanit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   image-rendering: pixelated;
   color: black;
