@@ -1,0 +1,6 @@
+{
+  "name": "AI Food Assistant",
+  "description": "แผงควบคุมอัจฉริยะวิเคราะห์และตัดสินใจเลือกร้านอาหารด้วยเกณฑ์ AI จาก Google Sheets และการยิง Scraper ด้วย n8n",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

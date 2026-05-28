@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;900&display=swap');
+
+:root {
+  --win-gray: #c0c0c0;
+  --win-white: #ffffff;
+  --win-dark-gray: #808080;
+  --win-border-light: #dfdfdf;
+  --win-pink: #d97706;
+  --win-blue: #7c2d12;
+}
+
+body {
+  background-color: #f59e0b;
+  font-family: 'Kanit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  image-rendering: pixelated;
+  color: black;
+}
+
+/* Retro Windows 95 elements */
+.win95-window {
+  background: var(--win-gray);
+  border: 2px solid;
+  border-top-color: var(--win-border-light);
+  border-left-color: var(--win-border-light);
+  border-right-color: var(--win-dark-gray);
+  border-bottom-color: var(--win-dark-gray);
+  box-shadow: 1px 1px 0 0 black;
+}
+
+.win95-inset {
+  border: 2px solid;
+  border-top-color: var(--win-dark-gray);
+  border-left-color: var(--win-dark-gray);
+  border-right-color: var(--win-border-light);
+  border-bottom-color: var(--win-border-light);
+  background: var(--win-white);
+}
+
+.win95-button {
+  background: var(--win-gray);
+  border: 2px solid;
+  border-top-color: var(--win-border-light);
+  border-left-color: var(--win-border-light);
+  border-right-color: var(--win-dark-gray);
+  border-bottom-color: var(--win-dark-gray);
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.win95-button:active:not(:disabled), .win95-button.win95-active {
+  border-top-color: var(--win-dark-gray);
+  border-left-color: var(--win-dark-gray);
+  border-right-color: var(--win-border-light);
+  border-bottom-color: var(--win-border-light);
+  padding: 3px 7px 1px 9px;
+  background: #e0e0e0;
+}
+
+.win95-button:disabled {
+  color: #808080;
+  border-top-color: var(--win-border-light);
+  border-left-color: var(--win-border-light);
+  border-right-color: var(--win-dark-gray);
+  border-bottom-color: var(--win-dark-gray);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.win95-title-bar {
+  background: var(--win-pink);
+  color: white;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.control-btn {
+  width: 16px;
+  height: 14px;
+  background: var(--win-gray);
+  border: 1px solid;
+  border-top-color: var(--win-border-light);
+  border-left-color: var(--win-border-light);
+  border-right-color: var(--win-dark-gray);
+  border-bottom-color: var(--win-dark-gray);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  cursor: pointer;
+}
+
+.badge {
+  padding: 2px 6px;
+  font-size: 10px;
+  border: 1px solid black;
+  text-transform: uppercase;
+}
+
+/* Custom Scrollbars */
+.scroll-win95::-webkit-scrollbar {
+  width: 16px;
+  background: #d4d4d4;
+}
+
+.scroll-win95::-webkit-scrollbar-thumb {
+  background: var(--win-gray);
+  border: 2px solid;
+  border-top-color: var(--win-border-light);
+  border-left-color: var(--win-border-light);
+  border-right-color: var(--win-dark-gray);
+  border-bottom-color: var(--win-dark-gray);
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 6px rgba(245, 158, 11, 0.70); }
+  50% { box-shadow: 0 0 22px rgba(180, 83, 9, 0.90); }
+  100% { box-shadow: 0 0 6px rgba(245, 158, 11, 0.70); }
+}
+
+.premium-rank-1 {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes win95-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+  20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+.win95-shake {
+  animation: win95-shake 0.4s ease-in-out;
+}
