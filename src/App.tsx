@@ -93,6 +93,9 @@ export default function App() {
     details: ""
   });
 
+  // Selected restaurant details modal
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+
   // Chat Widget State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -1130,6 +1133,187 @@ export default function App() {
         </div>
       )}
 
+      {/* --- WINDOWS 95 RETRO RESTAURANT DETAILS MODAL --- */}
+      {selectedRestaurant && (() => {
+        const customScenarioScoreValue = selectedRestaurant.scenario_score || selectedRestaurant.base_score;
+        const confidenceObject = computeConfidence(selectedRestaurant);
+        const operationalRiskObject = computeOperationalRisk(selectedRestaurant);
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(selectedRestaurant.name + ' ราคา เมนู อาหาร')}`;
+        
+        return (
+          <div 
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-55 p-4"
+            onClick={() => setSelectedRestaurant(null)}
+          >
+            <div 
+              className="win95-window w-full max-w-lg p-1 relative shadow-2xl animate-in fade-in duration-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Title Bar */}
+              <div className="win95-title-bar bg-[#000080] text-white font-bold p-1 px-2 text-xs flex justify-between items-center select-none">
+                <div className="flex items-center gap-1.5 font-black">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300 animate-pulse" />
+                  <span className="truncate">📋 แฟ้มข้อมูลร้านค้า: {selectedRestaurant.name}</span>
+                </div>
+                <button 
+                  onClick={() => setSelectedRestaurant(null)}
+                  className="control-btn"
+                >
+                  X
+                </button>
+              </div>
+
+              {/* Contents Area */}
+              <div className="p-3 bg-[#c0c0c0] text-black font-sans text-xs space-y-3.5 max-h-[85vh] overflow-y-auto scroll-win95">
+                
+                {/* Header Section with Name / Address */}
+                <div className="flex justify-between items-start border-b border-gray-400 pb-2">
+                  <div>
+                    <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase">{selectedRestaurant.name}</h2>
+                    <span className="text-[10px] text-gray-700 font-mono mt-0.5 block">📍 ที่อยู่ค้า: {selectedRestaurant.address || "ดูพิกัดได้ในแผนที่ด้านล่าง"}</span>
+                  </div>
+                  <span className="text-[10px] bg-white text-[#000080] border border-gray-400 px-1.5 py-0.5 font-black shrink-0 shadow">
+                    AI SCORE: {customScenarioScoreValue}%
+                  </span>
+                </div>
+
+                {/* Hero Image Frame */}
+                {selectedRestaurant.image && (
+                  <div className="h-44 win95-inset overflow-hidden relative bg-black select-none">
+                    <img 
+                      src={selectedRestaurant.image} 
+                      alt={selectedRestaurant.name} 
+                      className="w-full h-full object-cover filter grayscale-[0.05]"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute top-2 left-2 flex gap-1.5">
+                      {selectedRestaurant.isTrusted && (
+                        <span className="badge bg-purple-600 text-white font-bold border-white">High Trust Verified</span>
+                      )}
+                      {selectedRestaurant.isEstimatedPrice && (
+                        <span className="badge bg-yellow-400 text-black border-black font-bold">AI Price Estimator</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Mini Grid Stats (Rating, Price, Match Score) */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="win95-inset bg-blue-50/70 p-2 text-center select-none">
+                    <div className="text-[7.5px] uppercase text-gray-500 font-bold mb-0.5">Rating (คะแนน)</div>
+                    <div className="text-[11px] font-black text-blue-800">{selectedRestaurant.rating} ⭐</div>
+                    <div className="text-[9px] text-gray-500">({selectedRestaurant.reviews} รีวิว)</div>
+                  </div>
+                  <div className="win95-inset bg-green-50/70 p-2 text-center select-none">
+                    <div className="text-[7.5px] uppercase text-gray-500 font-bold mb-0.5">Price Range (ราคา)</div>
+                    <div className="text-[11px] font-black text-green-800 flex justify-center items-center gap-0.5">
+                      <span>{selectedRestaurant.display_price}</span>
+                      {selectedRestaurant.isEstimatedPrice && (
+                        <a 
+                          href={searchUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 font-normal hover:underline text-[10px]" 
+                          title="สแกนคนจานราคาจริง"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          🔍
+                        </a>
+                      )}
+                    </div>
+                    <div className="text-[9px] text-gray-500">(ต่อคน/Person)</div>
+                  </div>
+                  <div className="win95-inset bg-amber-50/70 p-2 text-center select-none">
+                    <div className="text-[7.5px] uppercase text-gray-500 font-bold mb-0.5">Base score</div>
+                    <div className="text-[11px] font-black text-amber-800">{selectedRestaurant.base_score}%</div>
+                    <div className="text-[9px] text-gray-500">(Standard Index)</div>
+                  </div>
+                </div>
+
+                {/* Metadata Column Area */}
+                <div className="bg-gray-100 border border-gray-400 p-2 space-y-1.5 text-xs text-gray-800">
+                  <p className="flex items-center gap-1.5 border-b border-gray-200 pb-1">
+                    <span className="text-[#000080] font-black">📍 พิกัดย่าน (Area):</span> 
+                    <span className="font-extrabold text-gray-900 underline">{selectedRestaurant.area}</span>
+                  </p>
+                  <p className="flex items-center gap-1.5 border-b border-gray-200 pb-1">
+                    <span className="text-gray-800 font-black">🍲 ประเภทอาหาร (Category):</span> 
+                    <span className="badge bg-slate-200 text-gray-900 font-bold">{selectedRestaurant.category}</span>
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <span className="text-amber-900 font-bold">💡 จุดเด่นจุดประสงค์ (Pros):</span> 
+                    <span className="font-medium text-amber-950 italic">{selectedRestaurant.pros || "ผ่านการประเมินจากระบบ AI แนะนำสโมสรผู้บริโภค"}</span>
+                  </p>
+                </div>
+
+                {/* Operational Safety and Technical Indices */}
+                <div className="flex flex-wrap gap-1.5 py-0.5 select-none">
+                  <span className={`badge px-2 py-0.5 border text-[10px] font-bold leading-none ${confidenceObject.confidence >= 75 ? "bg-green-100 text-green-800 border-green-500" : confidenceObject.confidence >= 50 ? "bg-orange-100 text-orange-850 border-orange-500" : "bg-red-100 text-red-800 border-red-500"}`} title={confidenceObject.reasons.join('\n')}>
+                    🛡️ ดัชนีความเสถียร (Confidence): {confidenceObject.confidence}%
+                  </span>
+                  <span className={`badge px-2 py-0.5 border text-[10px] font-bold leading-none ${operationalRiskObject.level === "ต่ำ" ? "bg-green-100 text-green-800 border-green-500" : operationalRiskObject.level === "กลาง" ? "bg-orange-100 text-orange-855 border-orange-500" : "bg-red-100 text-red-800 border-red-500"}`}>
+                    ⚠️ ระดับความเสี่ยง (Risk): {operationalRiskObject.level}
+                  </span>
+                </div>
+
+                {/* DEEP WHY DETAILED SCORES ACCORDION */}
+                <div className="win95-inset bg-white p-2 text-xs space-y-2 text-gray-800 leading-relaxed">
+                  <span className="font-black text-[#000080] block mb-1">
+                    🔬 รายละเอียดสัดส่วนคะแนนแยกตามหัวข้อ ({selectedScenario}):
+                  </span>
+                  <div className="grid grid-cols-2 gap-1 text-[9.5px]">
+                    <div className="bg-blue-50/50 p-1 win95-inset">คะแนนรีวิวร้าน (Quality): {(selectedRestaurant.scenario_parts?.quality || 0).toFixed(0)}%</div>
+                    <div className="bg-purple-50/50 p-1 win95-inset">คะแนนความนิยม (Popularity): {(selectedRestaurant.scenario_parts?.popularity || 0).toFixed(0)}%</div>
+                    <div className="bg-green-50/50 p-1 win95-inset">คะแนนความคุ้มค่าเงิน (Budget): {(selectedRestaurant.scenario_parts?.budget || 0).toFixed(0)}%</div>
+                    <div className="bg-amber-50/50 p-1 win95-inset">ความสอดคล้องประเภท (Category Fit): {(selectedRestaurant.scenario_parts?.categoryFit || 0).toFixed(0)}%</div>
+                  </div>
+                  <div className="win95-inset p-1.5 bg-gray-50 text-[10px] text-gray-600 mt-1">
+                    📃 ข้อมูลดิบยืนยัน: ย่าน {selectedRestaurant.area} | คะแนน {selectedRestaurant.rating}⭐ | ผู้รีวิว {selectedRestaurant.reviews} บัญชี
+                  </div>
+                </div>
+
+                {/* External Action Links (Buttons style retro) */}
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  {selectedRestaurant.map ? (
+                    <a 
+                      href={selectedRestaurant.map} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="win95-button py-1.5 px-3 text-xs flex-1 text-center font-black flex items-center justify-center gap-1 bg-gray-200 hover:bg-gray-300"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-red-600" />
+                      <span>เปิดนำทางด่าน Google Map 🗺️</span>
+                    </a>
+                  ) : null}
+                  {selectedRestaurant.source && selectedRestaurant.source.startsWith('http') ? (
+                    <a 
+                      href={selectedRestaurant.source} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="win95-button py-1.5 px-3 text-xs flex-1 text-center font-black flex items-center justify-center gap-1 bg-gray-200 hover:bg-gray-300"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-blue-900" />
+                      <span>เปิดชมเว็ปไซต์หลัก / เพจร้าน 🌐</span>
+                    </a>
+                  ) : null}
+                </div>
+
+                {/* Close modal controller button footer */}
+                <div className="flex justify-end pt-1 bg-transparent">
+                  <button 
+                    onClick={() => setSelectedRestaurant(null)}
+                    className="win95-button px-5 py-1 text-xs font-bold active:translate-y-0.5"
+                  >
+                    ปิด (Close File)
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* --- MAIN RETRO CONTAINER --- */}
       <div className="max-w-7xl mx-auto win95-window">
         {/* HEADER SECTION */}
@@ -1525,15 +1709,17 @@ export default function App() {
                               <MapPin className="w-2.5 h-2.5 text-red-700" />
                               <span>MAP ลิงก์</span>
                             </a>
-                            <a 
-                              href={item.source} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="win95-button text-[9px] flex-1 text-center flex items-center justify-center gap-0.5"
-                            >
-                              <ExternalLink className="w-2.5 h-2.5" />
-                              <span>เพจร้าน</span>
-                            </a>
+                            {item.source && item.source.startsWith('http') ? (
+                              <a 
+                                href={item.source} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="win95-button text-[9px] flex-1 text-center flex items-center justify-center gap-0.5"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" />
+                                <span>เพจร้าน</span>
+                              </a>
+                            ) : null}
                           </div>
                         </div>
 
@@ -1625,13 +1811,26 @@ export default function App() {
                         const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(item.name + ' ราคา เมนู อาหาร')}`;
                         
                         return (
-                          <tr key={`${item.name}-${idx}`} className="hover:bg-blue-50/50 bg-white">
-                            <td className="p-2 font-bold max-w-[150px] truncate">{item.name}</td>
+                          <tr 
+                            key={`${item.name}-${idx}`} 
+                            className="hover:bg-blue-100/90 hover:text-[#000080] cursor-pointer bg-white transition-all duration-150 border-b border-gray-200"
+                            onClick={() => setSelectedRestaurant(item)}
+                            title="คลิกเพื่อเปิดดูรายละเอียดฉบับวาดเต็มของร้านนี้"
+                          >
+                            <td className="p-2 font-bold max-w-[150px] truncate underline decoration-dashed decoration-blue-400 group-hover:text-blue-900">{item.name}</td>
                             <td className="p-2 text-center font-bold">
                               {item.isEstimatedPrice ? (
                                 <span className="text-green-700/80" title="ค่าสถิติจำลองโดย AI">
                                   {item.display_price}
-                                  <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-[10px] text-blue-600 hover:underline">🔍</a>
+                                  <a 
+                                    href={searchUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="ml-1 text-[10px] text-blue-600 hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    🔍
+                                  </a>
                                 </span>
                               ) : (
                                 <span className="text-green-800">{item.display_price}</span>
@@ -1640,7 +1839,7 @@ export default function App() {
                             <td className="p-2 text-center text-blue-800 font-bold">
                               {item.rating} <span className="text-[9px] text-gray-500 font-normal">({item.reviews})</span>
                             </td>
-                            <td className="p-2 text-center font-black text-amber-800">{item.base_score}%</td>
+                            <td className="p-2 text-center font-black text-[#000080]">{item.base_score}%</td>
                             <td className="p-2"><span className="badge bg-slate-100">{item.category}</span></td>
                             <td className="p-2 text-[10px] font-mono">{item.area}</td>
                           </tr>
