@@ -49,6 +49,68 @@ const SHEET_NAME = "List";
 const OPENSHEET_BASE = `https://opensheet.elk.sh/${SHEET_ID}`;
 const N8N_WEBHOOK_URL = "https://n8n-external.exservice.io/webhook/apify-googlemaps-receiver";
 
+const RetroMarquee = "marquee" as any;
+
+function getTopThreeReason(item: any, scenario: string, rank: number): string {
+  const rating = item.rating || 0;
+  const reviews = item.reviews || 0;
+  const price = item.price || 0;
+  const cat = (item.category || "อาหาร").trim();
+  const area = item.area || "กรุงเทพฯ";
+
+  switch (scenario) {
+    case "cheap":
+      if (rank === 1) {
+        return `🪙 คืนงบกระเป๋าอันดับ 1: เรตราคางามที่สุดเฉลี่ยเพียง ${item.display_price}/คน ประหยัดงบได้คุ้มค่าอย่างเหลือเชื่อในย่าน${area}`;
+      } else if (rank === 2) {
+        return `💸 ประหยัดน้ำดี: คว้าเรตติ้งคุ้มค่าสูงลิ่วด้วยราคาเฉลี่ยต่อหัวเพียง ~${price}฿ ครอบคลุมเมนูเด็ด${cat}ที่ทานได้สบายหัวใจ`;
+      } else {
+        return `🍛 ขวัญใจมื้อประหยัด: นำเสนอราคาสบายกระเป๋าระดับตัวเติมพลังประจำวัน ไม่สร้างภาระค่าใช้จ่ายแต่ยังรักษาคะแนนที่ดีเยี่ยมนิ่งตระการ`;
+      }
+    case "safe":
+      if (rank === 1) {
+        return `🛡️ ปลอดภัยระดับตำนานยักษ์ใหญ่: มวลชนพยานร่วมยืนยันรีวิวสูงสุดถึง ${reviews} ราย ความผันผวนทางสถิติต่ำสุด นั่งกินได้ชัวร์ปลอดภัยชื่นมื่น`;
+      } else if (rank === 2) {
+        return `✅ การันตีดัชนีอุ่นใจ: ประคองคะแนนเฉลี่ย ${rating}⭐ ดาว ด้วยยอดรีวิวน่าเชื่อถือ มั่นใจได้ในมาตรฐานอาหารและสุขอนามัยที่สม่ำเสมอ`;
+      } else {
+        return `💎 พ้นข้อกังวลข้อบกพร่องถ้วนหน้า: ผ่านฉลุยทุกเกณฑ์วิเคราะห์ คัดมาจากฐานเสียงจำนวนมากที่ไม่มีเสี่ยงเจอจุดบกพร่องผิดเพี้ยนเด็ดขาด`;
+      }
+    case "fast":
+      if (rank === 1) {
+        return `⚡ ด่วนจี๋ทันใจอันดับหนึ่ง: สอดคล้องในฐานหมวดจานเด่น ${cat} มีโครงสร้างรอบทำเวลาเสิร์ฟไวและอัตราการหมุนเวียนโต๊ะที่มีประสิทธิภาพจัดจ้าน`;
+      } else if (rank === 2) {
+        return `⏱️ อิ่มหมดจดไม่ต้องรอบัญชีนาน: ได้รับความเห็นเด่นเชิงบริหารเวลาเสิร์ฟรวดเร็ว เหมาะกับผู้แวะเติมพลังด่วนในสนามเวลาที่เร่งรีบอย่างแท้จริง`;
+      } else {
+        return `🍜 สายกินสู้เวลาคู่สายงาน: เมนูปรุงเสร็จไว รอบเตาตัดจานสั้นและทานสะดวกในย่าน${area} ไม่ต้องเสียเวลารอนานอุดอู้`;
+      }
+    case "work":
+      if (rank === 1) {
+        return `💼 คุยงานหรูเสร็จงานราบเรียบ: ส่งมอบภาพลักษณ์ระดับพรีเมียมในย่าน${area} หมวด${cat}ที่เหมาะสมเจรจาการค้า มีพื้นที่ระยะเว้นโต๊ะและบรรยากาศสงบดีเยี่ยม`;
+      } else if (rank === 2) {
+        return `✨ ยกระดับความประทับใจพาร์ทเนอร์: ยืนยันพอร์ทัลร้านเกรดสูงคู่คุณค่าด้วยเรตติ้งโดดเด่นสะกดสายตา ${rating}⭐ ดาว คลาสสิกยอดเยี่ยม`;
+      } else {
+        return `☕ บิลด์ไอเดียธุรกิจลื่นไหล: มอบความประณีตระดับงานต้อนรับ อาหารและเครื่องดื่มคุณภาพดีพร้อมเพิ่มคะแนนเจรจาธุรกิจเต็มร้อยเต็มร้อย`;
+      }
+    case "large":
+      if (rank === 1) {
+        return `👥 เลี้ยงทีมใหญ่รองรับ 8-12 คนสมบูรณ์แบบ: หมวดหมู่ ${cat} ยืนหนึ่งเรื่องความพร้อมการต้อนรับกว้างขวาง และจัดวางสเกลโต๊ะกลุ่มแชร์ได้จุใจ`;
+      } else if (rank === 2) {
+        return `🔥 เติมบรรยากาศสังสรรค์แสนอบอุ่น: ออกแบบมาเพื่อกลุ่มก้อนพนักงานเลี้ยงส่งหรือเครือข่าย ปรนเปรอบิ๊กจานเมนูอิ่มร่วมกระเพาะแสนสนุก`;
+      } else {
+        return `🍲 สมดุลแห่งความเพลิดเพลินหมู่คณะ: สัดส่วนและรูปแบบหมวดหมู่ของกินแชร์กันง่าย พร้อมคะแนนการันตีความสุขจากความเห็นส่วนใหญ่ไร้ข้อกังขา`;
+      }
+    default:
+    case "default":
+      if (rank === 1) {
+        return `⚖️ ยอดสมดุลที่สุดในตาราง: ได้คะแนนถ่วงสมดุลนิ่งประวัณวิจิตรรวมดีที่สุด ระหว่างราคาเฉลี่ยประชากร ยอดรีวิว ${reviews} ครั้ง และพิกัดเสถียรย่าน${area}`;
+      } else if (rank === 2) {
+        return `⭐ ดาวคู่สมดุลอภิรมย์: ประสานเรตติ้งแข็งแกร่ง ${rating}⭐ กับต้นทุนค่าครองชีพต่อหัวอย่างลงตัวที่สุด มีความคุ้มค่าแบบคงเส้นคงวา`;
+      } else {
+        return `📊 สมสัดส่วนคุ้มคุณประจุอิ่ม: ความสมบูรณ์ของภาพรวมคุ้มค่าเงินและมาตรฐานความพึงพอใจโดยรวมเด่น นิ่ง สงวนท่าทีคุ้มค่าอย่างแท้จริง`;
+      }
+  }
+}
+
 export default function App() {
   // --- STATE DECLARATIONS ---
   const [rawData, setRawData] = useState<any[]>([]);
@@ -304,16 +366,53 @@ export default function App() {
     return { sheetName: SHEET_NAME, data: result.data, source: result.source };
   };
 
-  const loadData = async (shouldShowToast = false) => {
+  const loadData = async (shouldShowToast = false, forceFresh = false) => {
     setIsLoading(true);
-    setLoadingProgress(25);
+    setLoadingProgress(15);
+    setLoadingText("กำลังตรวจสอบฐานข้อมูลแคขท้องถิ่น...");
+    
+    // Check local storage cache first
+    if (!forceFresh) {
+      try {
+        const cachedData = localStorage.getItem("ai_food_assistant_cached_data");
+        const cachedSource = localStorage.getItem("ai_food_assistant_cached_source");
+        const cachedTime = localStorage.getItem("ai_food_assistant_cached_time");
+        if (cachedData) {
+          const parsed = JSON.parse(cachedData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setRawData(parsed);
+            setDataSource(cachedSource || "Local Cache");
+            setLastUpdatedTime(cachedTime || new Date().toLocaleString("th-TH"));
+            // Fast skip to complete
+            setLoadingProgress(100);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (cacheErr) {
+        console.warn("Could not load food assistant data from cache:", cacheErr);
+      }
+    }
+
+    setLoadingProgress(35);
     setLoadingText("กำลังสืบค้นและระบุข้อมูล Google Sheet...");
     
     try {
       const resolved = await resolveWorkingSheet();
       setRawData(resolved.data);
       setDataSource(resolved.source);
-      setLastUpdatedTime(new Date().toLocaleTimeString());
+      
+      const updateTimeString = new Date().toLocaleString("th-TH");
+      setLastUpdatedTime(updateTimeString);
+
+      // Save to localStorage
+      try {
+        localStorage.setItem("ai_food_assistant_cached_data", JSON.stringify(resolved.data));
+        localStorage.setItem("ai_food_assistant_cached_source", resolved.source);
+        localStorage.setItem("ai_food_assistant_cached_time", updateTimeString);
+      } catch (saveErr) {
+        console.warn("Could not write to localStorage cache:", saveErr);
+      }
       
       setLoadingProgress(80);
       setLoadingText("กำลังสกัดวิเคราะห์คะแนนโหวตและจำลองงบประมาณ AI 2.0...");
@@ -528,7 +627,7 @@ export default function App() {
       return;
     }
 
-    if (!confirm("ต้องการยิงสัญญาณเริ่มต้นระบบ AI Scraper ตัวใหม่ใช่หรือไม่? (การดึงข้อมูลสดผ่านพนักงานหน้างานร่วมกับ n8n ใช้เวลาประมาณ 1-2 นาที)")) {
+    if (!confirm("ต้องการยิงสัญญาณเริ่มต้นระบบ AI Scraper ตัวใหม่ใช่หรือไม่?\n\n⚠️ ข้อควรระวัง: การดึงและเริ่มทำความสะอาดข้อมูลสดผ่าน n8n ใช้เวลาประมาณ 1-2 นาที กรุณาหลีกเลี่ยงการรีเฟรชหน้าเว็บหรือสลับหน้าต่างเบราเซอร์กะทันหันในขณะที่เครือข่ายกำลังตอบรับข้อมูล เพื่อรักษาเสถียรภาพและป้องกันข้อมูลสูญหายกะทันหัน!")) {
       return;
     }
 
@@ -621,7 +720,7 @@ export default function App() {
                 setRawData(currentFetchedData);
               }
 
-              setLastUpdatedTime(new Date().toLocaleTimeString());
+              setLastUpdatedTime(new Date().toLocaleString("th-TH"));
               isScrapingRef.current = false;
               setIsScraping(false);
               setIsLoading(false);
@@ -1080,8 +1179,11 @@ export default function App() {
               </span>
             </div>
             {isScraping && (
-              <div className="mt-3 text-[9px] text-red-800 font-bold text-center uppercase animate-pulse">
-                🚨 ห้ามกดสแปมทริกเกอร์เด็ดขาด / ระบบคลาวด์ n8n กำลังตอบรับตามใบสั่ง
+              <div className="mt-3 text-[9.5px] text-red-800 font-extrabold text-center uppercase space-y-1.5 leading-relaxed bg-red-50 p-1.5 border border-red-300">
+                <div className="animate-pulse">🚨 ห้ามกดสแปมทริกเกอร์เด็ดขาด / ระบบคลาวด์ n8n กำลังทำงาน</div>
+                <div className="text-gray-900 border-t border-red-200 pt-1 text-[8.5px] font-bold normal-case">
+                  ⚠️ คำเตือน: กรุณาอย่ารีเฟรชหน้าเว็บ หรือสลับหน้าต่างเบราเซอร์กะทันหันขณะระบบกำลังดึงข้อมูลและคลีนเซ็ตข้อมูล เพื่อป้องกันการขัดข้อง
+                </div>
               </div>
             )}
           </div>
@@ -1150,9 +1252,9 @@ export default function App() {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Title Bar */}
-              <div className="win95-title-bar bg-[#000080] text-white font-bold p-1 px-2 text-xs flex justify-between items-center select-none">
-                <div className="flex items-center gap-1.5 font-black">
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300 animate-pulse" />
+              <div className="win95-title-bar bg-[#000080] text-white font-bold p-1 px-2 text-xs flex justify-between items-center select-none gap-2">
+                <div className="flex items-center gap-1.5 font-black min-w-0 flex-1">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300 animate-pulse flex-shrink-0" />
                   <span className="truncate">📋 แฟ้มข้อมูลร้านค้า: {selectedRestaurant.name}</span>
                 </div>
                 <button 
@@ -1167,10 +1269,10 @@ export default function App() {
               <div className="p-3 bg-[#c0c0c0] text-black font-sans text-xs space-y-3.5 max-h-[85vh] overflow-y-auto scroll-win95">
                 
                 {/* Header Section with Name / Address */}
-                <div className="flex justify-between items-start border-b border-gray-400 pb-2">
-                  <div>
-                    <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase">{selectedRestaurant.name}</h2>
-                    <span className="text-[10px] text-gray-700 font-mono mt-0.5 block">📍 ที่อยู่ค้า: {selectedRestaurant.address || "ดูพิกัดได้ในแผนที่ด้านล่าง"}</span>
+                <div className="flex justify-between items-start border-b border-gray-400 pb-2 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase break-words leading-tight">{selectedRestaurant.name}</h2>
+                    <span className="text-[10px] text-gray-700 font-mono mt-0.5 block break-words">📍 ที่อยู่ค้า: {selectedRestaurant.address || "ดูพิกัดได้ในแผนที่ด้านล่าง"}</span>
                   </div>
                   <span className="text-[10px] bg-white text-[#000080] border border-gray-400 px-1.5 py-0.5 font-black shrink-0 shadow">
                     AI SCORE: {customScenarioScoreValue}%
@@ -1318,14 +1420,13 @@ export default function App() {
       <div className="max-w-7xl mx-auto win95-window">
         {/* HEADER SECTION */}
         <header className="win95-title-bar flex flex-col md:flex-row gap-4 py-4 px-6 border-b-2 border-black">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="bg-yellow-400 text-black text-xs font-black px-1.5 py-0.5 border border-black shadow">SYSTEM</span>
-              <h1 className="text-xl md:text-3xl font-black tracking-tight select-none">AI FOOD ASSISTANT</h1>
-            </div>
-            <p className="text-xs font-normal opacity-90 mt-1 dark:text-gray-100 font-bold">
-              ⚡ เว็บไซต์รวมร้านอาหารที่ได้รับการประเมินจาก AI ตัวช่วยเลือกร้านอาหารของคุณ
-            </p>
+          <div className="flex flex-col justify-center">
+            <h1 className="text-xl md:text-3xl font-black tracking-tight select-none flex items-center gap-2">
+              <span>AI FOOD ASSISTANT</span>
+              <span className="bg-red-600 text-white text-[10px] md:text-xs font-black px-2 py-0.5 border border-white rounded shadow-sm align-middle animate-pulse">
+                AI
+              </span>
+            </h1>
           </div>
           <div className="flex flex-col items-end gap-1.5 text-right md:ml-auto">
             <div className="flex flex-wrap gap-1 mb-1 justify-end">
@@ -1336,11 +1437,6 @@ export default function App() {
               <span className="badge bg-green-105 text-green-800 border-green-400 font-bold select-none text-[10px]">Antigravity IDE</span>
             </div>
             <p className="text-xs font-bold text-white">ผู้จัดทำ: นาย ธีรเมธ แซ่เบ้</p>
-            <div className="flex flex-wrap gap-x-2 items-center text-[10px] text-gray-700 justify-end">
-              <span>ข้อมูลจาก: <b className="uppercase">{dataSource || "กำลังสแกน"}</b></span>
-              <span>•</span>
-              <span>Updated: <b className="text-blue-900 font-black">{lastUpdatedTime}</b></span>
-            </div>
 
             {/* Scrape trigger button with disabled control locks and styling states */}
             <button
@@ -1362,6 +1458,20 @@ export default function App() {
             </button>
           </div>
         </header>
+
+        {/* RETRO ANNOUNCEMENT TICKER */}
+        <div className="bg-[#c0c0c0] px-4 pt-3 pb-1 border-b border-gray-400">
+          <div className="win95-inset bg-[#ffffe1] text-xs py-1.5 px-3 flex items-center justify-between gap-3 overflow-hidden shadow-inner select-none border border-gray-500">
+            <span className="font-extrabold text-[#000080] shrink-0 flex items-center gap-1.5 border-r border-gray-400 pr-3 bg-yellow-300 px-1 border border-black shadow">
+              📢 ประกาศ / BULLETIN:
+            </span>
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <RetroMarquee scrollamount="3" behavior="scroll" direction="left" className="font-extrabold text-gray-900 block">
+                ข้อมูลจากระบบคลาวด์: <span className="text-[#000080] uppercase font-black underline decoration-double">{dataSource || "กำลังดึงข้อมูล..."}</span> &nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;&nbsp; อัปเดตล่าสุด (Updated): <span className="text-red-700 font-extrabold">{lastUpdatedTime || "ไม่มีข้อมูล"}</span> &nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;&nbsp; ยินดีต้อนรับสู่ AI Food Assistant แพลตฟอร์มวินเทจเพื่อการประเมินร้านอาหารคู่ใจคุณ! เลือกดูเมนู แผนที่นำทาง และคะแนนประมวลผลสูงสุดได้ทันที
+              </RetroMarquee>
+            </div>
+          </div>
+        </div>
 
         {/* CONTROLS & MAIN DATABASE CONTAINER AND DOCK */}
         <div className="p-4 bg-[#c0c0c0] grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -1473,7 +1583,7 @@ export default function App() {
                   </div>
                 </div>
                 <button
-                  onClick={() => loadData(true)}
+                  onClick={() => loadData(true, true)}
                   disabled={isLoading || isScraping}
                   className="w-full win95-button bg-green-700 text-white font-bold text-xs py-2 px-3 hover:bg-green-800 disabled:opacity-50 select-none flex items-center justify-center gap-2"
                 >
@@ -1590,7 +1700,7 @@ export default function App() {
                       >
                         {/* Title Bar Card */}
                         <div className={`win95-title-bar ${idx === 0 ? "bg-[#000080]" : "bg-[#4a505a]"} select-none`}>
-                          <span className="font-black text-xs">#{idx + 1} AI CHOICE</span>
+                          <span className="font-black text-xs">#{idx + 1} RECOMMEND</span>
                           <span className="text-[10px] bg-white text-black px-1 border border-black font-black">
                             {customScenarioScoreValue}% SCORE
                           </span>
@@ -1659,6 +1769,17 @@ export default function App() {
                                 Risk: {operationalRiskObject.level}
                               </span>
                             </div>
+                          </div>
+
+                          {/* Highly Accurate Situational Reason Box */}
+                          <div className="mt-2.5 win95-inset bg-[#ffffe1] p-2 border border-gray-450 text-gray-900 leading-normal shadow-inner">
+                            <div className="flex items-center gap-1 font-extrabold text-[#000080] text-[9.5px] border-b border-gray-300 pb-0.5 mb-1.5 uppercase select-none">
+                              <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />
+                              <span>💡 เหตุผลที่แนะนำ (AI Recommendation Why):</span>
+                            </div>
+                            <p className="font-extrabold text-[10px] leading-relaxed text-gray-800">
+                              {getTopThreeReason(item, selectedScenario, idx + 1)}
+                            </p>
                           </div>
 
                           {/* DEEP WHY UNDERSTAND ACCORDION */}
@@ -1762,7 +1883,7 @@ export default function App() {
 
               {/* Table wrapper scrolls retro */}
               <div className="max-h-[380px] overflow-y-auto overflow-x-auto scroll-win95 bg-white">
-                <table className="w-full text-left text-xs border-collapse">
+                <table className="w-full text-left text-[10px] md:text-xs border-collapse">
                   <thead className="sticky top-0 bg-gray-200 z-10 select-none">
                     <tr className="border-b-2 border-black">
                       {[
@@ -1787,11 +1908,11 @@ export default function App() {
                                 }
                               }
                             }}
-                            className={`p-2 border-r border-gray-400 cursor-pointer hover:bg-gray-300 font-bold ${col.align || ""} ${isSortActive ? "bg-gray-300 font-black text-amber-900" : ""}`}
+                            className={`p-1.5 md:p-2 border-r border-gray-400 cursor-pointer hover:bg-gray-300 font-bold text-[9px] md:text-xs ${col.align || ""} ${isSortActive ? "bg-gray-300 font-black text-amber-900" : ""}`}
                           >
-                            <div className="flex items-center gap-1 justify-center">
+                            <div className="flex items-center gap-0.5 md:gap-1 justify-center whitespace-nowrap">
                               <span>{col.label}</span>
-                              {isSortActive && <ArrowUpDown className="w-2.5 h-2.5" />}
+                              {isSortActive && <ArrowUpDown className="w-2.5 h-2.5 shrink-0" />}
                             </div>
                           </th>
                         );
@@ -1817,8 +1938,10 @@ export default function App() {
                             onClick={() => setSelectedRestaurant(item)}
                             title="คลิกเพื่อเปิดดูรายละเอียดฉบับวาดเต็มของร้านนี้"
                           >
-                            <td className="p-2 font-bold max-w-[150px] truncate underline decoration-dashed decoration-blue-400 group-hover:text-blue-900">{item.name}</td>
-                            <td className="p-2 text-center font-bold">
+                            <td className="p-1.5 md:p-2 text-[9.5px] md:text-xs font-bold max-w-[110px] md:max-w-[150px] truncate underline decoration-dashed decoration-blue-400 group-hover:text-blue-900" title={item.name}>
+                              {item.name}
+                            </td>
+                            <td className="p-1.5 md:p-2 text-[9.5px] md:text-xs text-center font-bold whitespace-nowrap">
                               {item.isEstimatedPrice ? (
                                 <span className="text-green-700/80" title="ค่าสถิติจำลองโดย AI">
                                   {item.display_price}
@@ -1826,7 +1949,7 @@ export default function App() {
                                     href={searchUrl} 
                                     target="_blank" 
                                     rel="noopener noreferrer" 
-                                    className="ml-1 text-[10px] text-blue-600 hover:underline"
+                                    className="ml-1 text-[8.5px] md:text-[10px] text-blue-600 hover:underline inline-block"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     🔍
@@ -1836,12 +1959,12 @@ export default function App() {
                                 <span className="text-green-800">{item.display_price}</span>
                               )}
                             </td>
-                            <td className="p-2 text-center text-blue-800 font-bold">
-                              {item.rating} <span className="text-[9px] text-gray-500 font-normal">({item.reviews})</span>
+                            <td className="p-1.5 md:p-2 text-[9.5px] md:text-xs text-center text-blue-800 font-bold whitespace-nowrap">
+                              {item.rating} <span className="text-[8px] md:text-[9px] text-gray-500 font-normal">({item.reviews})</span>
                             </td>
-                            <td className="p-2 text-center font-black text-[#000080]">{item.base_score}%</td>
-                            <td className="p-2"><span className="badge bg-slate-100">{item.category}</span></td>
-                            <td className="p-2 text-[10px] font-mono">{item.area}</td>
+                            <td className="p-1.5 md:p-2 text-[9.5px] md:text-xs text-center font-black text-[#000080]">{item.base_score}%</td>
+                            <td className="p-1.5 md:p-2 text-[8px] md:text-xs"><span className="badge bg-slate-100 px-1 py-0.5 text-[8.5px] md:text-[10px]">{item.category}</span></td>
+                            <td className="p-1.5 md:p-2 text-[8.5px] md:text-[10px] font-mono leading-none">{item.area}</td>
                           </tr>
                         );
                       })
