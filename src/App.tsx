@@ -878,18 +878,17 @@ export default function App() {
       const model = genAI.getGenerativeModel({ model: geminiModel });
 
       // Batching Configuration for Raw Data
-      const BATCH_SIZE = 100; // Larger batches for raw data
-      const allCleanedData: any[] = [];
+      const BATCH_SIZE = 100;
       const totalItems = dataToClean.length;
       const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
+      
+      setLoadingText(`AI Gemini กำลังประมวลผลข้อมูลแบบขนาน (${totalBatches} กลุ่ม)...`);
 
-      for (let i = 0; i < totalBatches; i++) {
+      // Create all batch promises at once for parallel execution
+      const batchPromises = Array.from({ length: totalBatches }).map(async (_, i) => {
         const start = i * BATCH_SIZE;
         const end = Math.min(start + BATCH_SIZE, totalItems);
         const batchData = dataToClean.slice(start, end);
-
-        setLoadingProgress(10 + Math.round((i / totalBatches) * 75));
-        setLoadingText(`AI Gemini กำลังคลีนและคัดร้านซ้ำ Batch ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
 
         const simplifiedBatch = batchData.map(item => ({
           "title": item['title'] || item['Name'] || item['ชื่อร้าน'] || '',
@@ -914,22 +913,39 @@ export default function App() {
         
         DATA: ${JSON.stringify(simplifiedBatch)}`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        
-        const jsonMatch = text.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const cleanedBatch = JSON.parse(jsonMatch[0]);
-          allCleanedData.push(...cleanedBatch);
+        try {
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          const text = response.text();
+          const jsonMatch = text.match(/\[[\s\S]*\]/);
+          
+          // Update progress as each batch finishes
+          setLoadingProgress(prev => Math.min(85, prev + (70 / totalBatches)));
+          
+          return jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+        } catch (err) {
+          console.error(`Batch ${i + 1} failed:`, err);
+          return [];
         }
+      });
+
+      // Wait for all batches to finish in parallel
+      const results = await Promise.all(batchPromises);
+      const allCleanedData = results.flat();
+
+      if (allCleanedData.length === 0) {
+        throw new Error("AI ไม่สามารถประมวลผลข้อมูลชุดนี้ได้เลย");
       }
 
       // Final Deduplication at the app level to be safe
       const uniqueFinal = new Map();
       allCleanedData.forEach(item => {
-        if (item["ชื่อร้าน"]) {
-          uniqueFinal.set(item["ชื่อร้าน"], item);
+        const name = item["ชื่อร้าน"];
+        if (name) {
+          // If we already have this store, prefer the one with more reviews/better data
+          if (!uniqueFinal.has(name)) {
+            uniqueFinal.set(name, item);
+          }
         }
       });
       const finalCleanedData = Array.from(uniqueFinal.values());
