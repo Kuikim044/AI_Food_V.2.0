@@ -879,26 +879,29 @@ export default function App() {
 
       // Batching Configuration for Raw Data
       const BATCH_SIZE = 100;
+      const allCleanedData: any[] = [];
       const totalItems = dataToClean.length;
       const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
       
-      setLoadingText(`AI Gemini กำลังประมวลผลข้อมูลแบบขนาน (${totalBatches} กลุ่ม)...`);
+      console.log(`Processing ${totalItems} items in ${totalBatches} sequential batches...`);
 
-      // Create all batch promises at once for parallel execution
-      const batchPromises = Array.from({ length: totalBatches }).map(async (_, i) => {
+      for (let i = 0; i < totalBatches; i++) {
         const start = i * BATCH_SIZE;
         const end = Math.min(start + BATCH_SIZE, totalItems);
         const batchData = dataToClean.slice(start, end);
 
+        setLoadingProgress(10 + Math.round((i / totalBatches) * 75));
+        setLoadingText(`AI Gemini กำลังประมวลผลกลุ่มที่ ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
+
         const simplifiedBatch = batchData.map(item => ({
-          "title": item['title'] || item['Name'] || item['ชื่อร้าน'] || '',
-          "category": item['categoryName'] || item['ประเภท'] || '',
-          "price": item['priceRange'] || item['price'] || '',
-          "neighborhood": item['neighborhood'] || item['ย่าน'] || '',
-          "address": item['address'] || item['ที่อยู่'] || '',
-          "score": item['totalScore'] || item['rating'] || '',
-          "reviews": item['reviewsCount'] || item['reviews'] || '',
-          "mapUrl": item['url'] || item['map'] || item['mapUrl'] || ''
+          "title": item['title'] || item['Name'] || item['ชื่อร้าน'] || item['ชื่อ'] || '',
+          "category": item['categoryName'] || item['ประเภท'] || item['Category'] || '',
+          "price": item['priceRange'] || item['price'] || item['ราคา'] || '',
+          "neighborhood": item['neighborhood'] || item['ย่าน'] || item['Area'] || '',
+          "address": item['address'] || item['ที่อยู่'] || item['Address'] || '',
+          "score": item['totalScore'] || item['rating'] || item['คะแนน'] || '',
+          "reviews": item['reviewsCount'] || item['reviews'] || item['จำนวนรีวิว'] || '',
+          "mapUrl": item['url'] || item['map'] || item['mapUrl'] || item['Google Maps URL'] || ''
         }));
 
         const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
@@ -919,22 +922,21 @@ export default function App() {
           const text = response.text();
           const jsonMatch = text.match(/\[[\s\S]*\]/);
           
-          // Update progress as each batch finishes
-          setLoadingProgress(prev => Math.min(85, prev + (70 / totalBatches)));
-          
-          return jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-        } catch (err) {
-          console.error(`Batch ${i + 1} failed:`, err);
-          return [];
+          if (jsonMatch) {
+            const cleanedBatch = JSON.parse(jsonMatch[0]);
+            console.log(`Batch ${i + 1} cleaned: ${cleanedBatch.length} unique items found.`);
+            allCleanedData.push(...cleanedBatch);
+          } else {
+            console.error(`Batch ${i + 1} failed to return valid JSON. Text:`, text.slice(0, 100));
+          }
+        } catch (err: any) {
+          console.error(`Batch ${i + 1} API Error:`, err);
+          // If a batch fails, we continue to others but notify in console
         }
-      });
-
-      // Wait for all batches to finish in parallel
-      const results = await Promise.all(batchPromises);
-      const allCleanedData = results.flat();
+      }
 
       if (allCleanedData.length === 0) {
-        throw new Error("AI ไม่สามารถประมวลผลข้อมูลชุดนี้ได้เลย");
+        throw new Error("AI ไม่สามารถประมวลผลข้อมูลชุดนี้ได้เลย (อาจเกิดจากข้อจำกัดของ API หรือรูปแบบข้อมูล)");
       }
 
       // Final Deduplication at the app level to be safe
@@ -942,7 +944,6 @@ export default function App() {
       allCleanedData.forEach(item => {
         const name = item["ชื่อร้าน"];
         if (name) {
-          // If we already have this store, prefer the one with more reviews/better data
           if (!uniqueFinal.has(name)) {
             uniqueFinal.set(name, item);
           }
