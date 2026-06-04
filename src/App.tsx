@@ -878,12 +878,12 @@ export default function App() {
       const model = genAI.getGenerativeModel({ model: geminiModel });
 
       // Batching Configuration for Raw Data
-      const BATCH_SIZE = 100;
+      const BATCH_SIZE = 30; // Smaller batches for better stability and context limits
       const allCleanedData: any[] = [];
       const totalItems = dataToClean.length;
       const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
       
-      console.log(`Processing ${totalItems} items in ${totalBatches} sequential batches...`);
+      console.log(`AI Cleaning: Starting to process ${totalItems} items in ${totalBatches} batches.`);
 
       for (let i = 0; i < totalBatches; i++) {
         const start = i * BATCH_SIZE;
@@ -893,25 +893,38 @@ export default function App() {
         setLoadingProgress(10 + Math.round((i / totalBatches) * 75));
         setLoadingText(`AI Gemini กำลังประมวลผลกลุ่มที่ ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
 
-        const simplifiedBatch = batchData.map(item => ({
-          "title": item['title'] || item['Name'] || item['ชื่อร้าน'] || item['ชื่อ'] || '',
-          "category": item['categoryName'] || item['ประเภท'] || item['Category'] || '',
-          "price": item['priceRange'] || item['price'] || item['ราคา'] || '',
-          "neighborhood": item['neighborhood'] || item['ย่าน'] || item['Area'] || '',
-          "address": item['address'] || item['ที่อยู่'] || item['Address'] || '',
-          "score": item['totalScore'] || item['rating'] || item['คะแนน'] || '',
-          "reviews": item['reviewsCount'] || item['reviews'] || item['จำนวนรีวิว'] || '',
-          "mapUrl": item['url'] || item['map'] || item['mapUrl'] || item['Google Maps URL'] || ''
-        }));
+        const simplifiedBatch = batchData.map(item => {
+          // Robust mapping to find the right columns in the raw data
+          const getVal = (keys: string[]) => {
+            for (const key of keys) {
+              if (item[key] !== undefined && item[key] !== null && item[key] !== "") return item[key];
+            }
+            return "";
+          };
+
+          return {
+            "title": getVal(['title', 'Name', 'ชื่อร้าน', 'ชื่อ', 'restaurant_name', 'name', 'Title', 'ชื่อร้านอาหาร']),
+            "category": getVal(['categoryName', 'ประเภท', 'Category', 'category', 'ประเภทอาหาร', 'SubCategory']),
+            "price": getVal(['priceRange', 'price', 'ราคา', 'Price', 'ราคาต่อหัว', 'Budget', 'price_range']),
+            "neighborhood": getVal(['neighborhood', 'ย่าน', 'Area', 'area', 'สถานที่', 'Location', 'district']),
+            "address": getVal(['address', 'ที่อยู่', 'Address', 'address_full']),
+            "score": getVal(['totalScore', 'rating', 'คะแนน', 'Score', 'Rating', 'stars']),
+            "reviews": getVal(['reviewsCount', 'reviews', 'จำนวนรีวิว', 'Reviews', 'review_count']),
+            "mapUrl": getVal(['url', 'map', 'mapUrl', 'Google Maps URL', 'link', 'google_map_url'])
+          };
+        });
+
+        // Log the first item once to verify mapping
+        if (i === 0) console.log("Sample mapped item:", simplifiedBatch[0]);
 
         const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
         1. DEDUPLICATE: If multiple entries have the same name, merge them into one.
         2. STANDARDIZE: Categories should be like 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'.
         3. EXTRACT: Price per person as a single number (integer).
-        4. FORMAT: Return a JSON array of objects with these keys:
+        4. FORMAT: Return a JSON array of objects with these EXACT keys:
         "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
         
-        IMPORTANT: Use the "title" field for "ชื่อร้าน" and "mapUrl" field for "ลิงก์แผนที่".
+        IMPORTANT: Do NOT miss "ชื่อร้าน" and "ลิงก์แผนที่". Use the source "title" and "mapUrl".
         Return ONLY the JSON array.
         
         DATA: ${JSON.stringify(simplifiedBatch)}`;
@@ -920,30 +933,45 @@ export default function App() {
           const result = await model.generateContent(prompt);
           const response = await result.response;
           const text = response.text();
+          
+          // Flexible JSON extraction
+          let cleanedBatch = [];
           const jsonMatch = text.match(/\[[\s\S]*\]/);
           
           if (jsonMatch) {
-            const cleanedBatch = JSON.parse(jsonMatch[0]);
-            console.log(`Batch ${i + 1} cleaned: ${cleanedBatch.length} unique items found.`);
-            allCleanedData.push(...cleanedBatch);
+            cleanedBatch = JSON.parse(jsonMatch[0]);
           } else {
-            console.error(`Batch ${i + 1} failed to return valid JSON. Text:`, text.slice(0, 100));
+            // Try parsing whole text if match fails
+            try {
+              cleanedBatch = JSON.parse(text);
+            } catch (e) {
+              console.error(`Batch ${i + 1} failed to parse JSON. Response:`, text.slice(0, 150));
+            }
+          }
+          
+          if (Array.isArray(cleanedBatch) && cleanedBatch.length > 0) {
+            console.log(`Batch ${i + 1} success: ${cleanedBatch.length} items.`);
+            allCleanedData.push(...cleanedBatch);
           }
         } catch (err: any) {
-          console.error(`Batch ${i + 1} API Error:`, err);
-          // If a batch fails, we continue to others but notify in console
+          console.error(`Batch ${i + 1} error:`, err);
+        }
+
+        // Small delay to avoid rate limits
+        if (i < totalBatches - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
 
       if (allCleanedData.length === 0) {
-        throw new Error("AI ไม่สามารถประมวลผลข้อมูลชุดนี้ได้เลย (อาจเกิดจากข้อจำกัดของ API หรือรูปแบบข้อมูล)");
+        throw new Error("AI ไม่สามารถประมวลผลข้อมูลชุดนี้ได้เลย (อาจเกิดจากชื่อหัวข้อในชีตไม่ตรงกับที่ AI คาดหวัง)");
       }
 
       // Final Deduplication at the app level to be safe
       const uniqueFinal = new Map();
       allCleanedData.forEach(item => {
         const name = item["ชื่อร้าน"];
-        if (name) {
+        if (name && name !== "ไม่ระบุ") {
           if (!uniqueFinal.has(name)) {
             uniqueFinal.set(name, item);
           }
