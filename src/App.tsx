@@ -1438,6 +1438,7 @@ export default function App() {
               <span className="badge bg-green-105 text-green-800 border-green-400 font-bold select-none text-[10px]">Antigravity IDE</span>
             </div>
             <p className="text-xs font-bold text-white">ผู้จัดทำ: นาย ธีรเมธ แซ่เบ้</p>
+            <p className="text-xs font-bold text-white">วันที่จัดทำ: 28/05/2026</p>
 
             {/* Scrape trigger button with disabled control locks and styling states */}
             <button
