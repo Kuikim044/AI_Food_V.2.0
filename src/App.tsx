@@ -57,56 +57,57 @@ function getTopThreeReason(item: any, scenario: string, rank: number): string {
   const price = item.price || 0;
   const cat = (item.category || "อาหาร").trim();
   const area = item.area || "กรุงเทพฯ";
+  const place = area === "ไม่ระบุ" ? "" : `ในย่าน${area}`;
 
   switch (scenario) {
     case "cheap":
       if (rank === 1) {
-        return `🪙 คืนงบกระเป๋าอันดับ 1: เรตราคางามที่สุดเฉลี่ยเพียง ${item.display_price}/คน ประหยัดงบได้คุ้มค่าอย่างเหลือเชื่อในย่าน${area}`;
+        return `🪙 คุ้มงบที่สุดในชุดนี้ ราคาเฉลี่ยอยู่ที่ ${item.display_price}/คน เหมาะกับวันที่อยากกินดีโดยไม่บานปลาย${place}`;
       } else if (rank === 2) {
-        return `💸 ประหยัดน้ำดี: คว้าเรตติ้งคุ้มค่าสูงลิ่วด้วยราคาเฉลี่ยต่อหัวเพียง ~${price}฿ ครอบคลุมเมนูเด็ด${cat}ที่ทานได้สบายหัวใจ`;
+        return `💸 ราคาเป็นมิตร ประมาณ ${price}฿ ต่อคน แต่ยังได้คะแนนรีวิวดี เหมาะกับคนที่อยากได้ร้าน${cat}แบบสบายกระเป๋า`;
       } else {
-        return `🍛 ขวัญใจมื้อประหยัด: นำเสนอราคาสบายกระเป๋าระดับตัวเติมพลังประจำวัน ไม่สร้างภาระค่าใช้จ่ายแต่ยังรักษาคะแนนที่ดีเยี่ยมนิ่งตระการ`;
+        return `🍛 เป็นตัวเลือกประหยัดที่ยังดูไว้ใจได้ เหมาะกับมื้อทั่วไปที่อยากจบง่ายและราคาไม่แรง`;
       }
     case "safe":
       if (rank === 1) {
-        return `🛡️ ปลอดภัยระดับตำนานยักษ์ใหญ่: มวลชนพยานร่วมยืนยันรีวิวสูงสุดถึง ${reviews} ราย ความผันผวนทางสถิติต่ำสุด นั่งกินได้ชัวร์ปลอดภัยชื่นมื่น`;
+        return `🛡️ รีวิวเยอะมากถึง ${reviews} ราย ทำให้ข้อมูลดูนิ่งกว่าเพื่อน เหมาะกับวันที่ไม่อยากเสี่ยงลองร้านใหม่แบบสุ่ม`;
       } else if (rank === 2) {
-        return `✅ การันตีดัชนีอุ่นใจ: ประคองคะแนนเฉลี่ย ${rating}⭐ ดาว ด้วยยอดรีวิวน่าเชื่อถือ มั่นใจได้ในมาตรฐานอาหารและสุขอนามัยที่สม่ำเสมอ`;
+        return `✅ คะแนนเฉลี่ย ${rating}⭐ พร้อมจำนวนรีวิวที่น่าเชื่อถือ เป็นร้านที่เลือกได้แบบอุ่นใจ`;
       } else {
-        return `💎 พ้นข้อกังวลข้อบกพร่องถ้วนหน้า: ผ่านฉลุยทุกเกณฑ์วิเคราะห์ คัดมาจากฐานเสียงจำนวนมากที่ไม่มีเสี่ยงเจอจุดบกพร่องผิดเพี้ยนเด็ดขาด`;
+        return `💎 ข้อมูลโดยรวมดูสมดุล ทั้งคะแนนและฐานรีวิว เหมาะกับการเลือกร้านแบบเน้นความชัวร์`;
       }
     case "fast":
       if (rank === 1) {
-        return `⚡ ด่วนจี๋ทันใจอันดับหนึ่ง: สอดคล้องในฐานหมวดจานเด่น ${cat} มีโครงสร้างรอบทำเวลาเสิร์ฟไวและอัตราการหมุนเวียนโต๊ะที่มีประสิทธิภาพจัดจ้าน`;
+        return `⚡ เหมาะกับมื้อเร่งด่วน หมวด${cat}มักกินง่าย ตัดสินใจเร็ว และไม่ต้องใช้เวลานั่งนาน`;
       } else if (rank === 2) {
-        return `⏱️ อิ่มหมดจดไม่ต้องรอบัญชีนาน: ได้รับความเห็นเด่นเชิงบริหารเวลาเสิร์ฟรวดเร็ว เหมาะกับผู้แวะเติมพลังด่วนในสนามเวลาที่เร่งรีบอย่างแท้จริง`;
+        return `⏱️ เป็นตัวเลือกที่ดูจบไว เหมาะกับช่วงพักสั้นๆ หรือวันที่อยากกินแล้วไปต่อ`;
       } else {
-        return `🍜 สายกินสู้เวลาคู่สายงาน: เมนูปรุงเสร็จไว รอบเตาตัดจานสั้นและทานสะดวกในย่าน${area} ไม่ต้องเสียเวลารอนานอุดอู้`;
+        return `🍜 ร้านนี้เหมาะกับคนที่อยากได้มื้อสะดวก${place} ไม่ต้องวางแผนเยอะ`;
       }
     case "work":
       if (rank === 1) {
-        return `💼 คุยงานหรูเสร็จงานราบเรียบ: ส่งมอบภาพลักษณ์ระดับพรีเมียมในย่าน${area} หมวด${cat}ที่เหมาะสมเจรจาการค้า มีพื้นที่ระยะเว้นโต๊ะและบรรยากาศสงบดีเยี่ยม`;
+        return `💼 ภาพรวมเหมาะกับนัดคุยงานหรือรับแขก หมวด${cat}${place}ดูสุภาพและเลือกได้ง่าย`;
       } else if (rank === 2) {
-        return `✨ ยกระดับความประทับใจพาร์ทเนอร์: ยืนยันพอร์ทัลร้านเกรดสูงคู่คุณค่าด้วยเรตติ้งโดดเด่นสะกดสายตา ${rating}⭐ ดาว คลาสสิกยอดเยี่ยม`;
+        return `✨ คะแนน ${rating}⭐ ช่วยให้มั่นใจขึ้น เหมาะกับนัดที่อยากให้บรรยากาศดูดีแต่ไม่เยอะเกินไป`;
       } else {
-        return `☕ บิลด์ไอเดียธุรกิจลื่นไหล: มอบความประณีตระดับงานต้อนรับ อาหารและเครื่องดื่มคุณภาพดีพร้อมเพิ่มคะแนนเจรจาธุรกิจเต็มร้อยเต็มร้อย`;
+        return `☕ เป็นร้านที่ดูเหมาะกับการนั่งคุยสบายๆ ระหว่างกินหรือดื่มกาแฟ ไม่ทางการจนเกินไป`;
       }
     case "large":
       if (rank === 1) {
-        return `👥 เลี้ยงทีมใหญ่รองรับ 8-12 คนสมบูรณ์แบบ: หมวดหมู่ ${cat} ยืนหนึ่งเรื่องความพร้อมการต้อนรับกว้างขวาง และจัดวางสเกลโต๊ะกลุ่มแชร์ได้จุใจ`;
+        return `👥 เหมาะกับกลุ่ม 8-12 คน โดยเฉพาะหมวด${cat}ที่แชร์กันง่ายและช่วยให้ทุกคนเลือกเมนูร่วมกันได้สะดวก`;
       } else if (rank === 2) {
-        return `🔥 เติมบรรยากาศสังสรรค์แสนอบอุ่น: ออกแบบมาเพื่อกลุ่มก้อนพนักงานเลี้ยงส่งหรือเครือข่าย ปรนเปรอบิ๊กจานเมนูอิ่มร่วมกระเพาะแสนสนุก`;
+        return `🔥 เหมาะกับมื้อทีม เลี้ยงส่ง หรือกินกับเพื่อนร่วมงาน เพราะดูเป็นร้านที่แชร์อาหารและคุยกันได้ง่าย`;
       } else {
-        return `🍲 สมดุลแห่งความเพลิดเพลินหมู่คณะ: สัดส่วนและรูปแบบหมวดหมู่ของกินแชร์กันง่าย พร้อมคะแนนการันตีความสุขจากความเห็นส่วนใหญ่ไร้ข้อกังขา`;
+        return `🍲 เป็นตัวเลือกสำรองที่ยังลงตัวสำหรับกลุ่มใหญ่ คะแนนและราคาโดยรวมไม่สุดโต่งจนเลือกยาก`;
       }
     default:
     case "default":
       if (rank === 1) {
-        return `⚖️ ยอดสมดุลที่สุดในตาราง: ได้คะแนนถ่วงสมดุลนิ่งประวัณวิจิตรรวมดีที่สุด ระหว่างราคาเฉลี่ยประชากร ยอดรีวิว ${reviews} ครั้ง และพิกัดเสถียรย่าน${area}`;
+        return `⚖️ ตัวเลือกที่สมดุลที่สุดตอนนี้ ทั้งราคา คะแนน และจำนวนรีวิว ${reviews} ครั้ง เหมาะกับการเริ่มตัดสินใจ`;
       } else if (rank === 2) {
-        return `⭐ ดาวคู่สมดุลอภิรมย์: ประสานเรตติ้งแข็งแกร่ง ${rating}⭐ กับต้นทุนค่าครองชีพต่อหัวอย่างลงตัวที่สุด มีความคุ้มค่าแบบคงเส้นคงวา`;
+        return `⭐ คะแนน ${rating}⭐ และราคาต่อหัวอยู่ในจุดที่น่าสนใจ เป็นตัวเลือกที่คุ้มค่าแบบไม่ต้องคิดเยอะ`;
       } else {
-        return `📊 สมสัดส่วนคุ้มคุณประจุอิ่ม: ความสมบูรณ์ของภาพรวมคุ้มค่าเงินและมาตรฐานความพึงพอใจโดยรวมเด่น นิ่ง สงวนท่าทีคุ้มค่าอย่างแท้จริง`;
+        return `📊 ภาพรวมยังดีและดูคุ้มราคา เหมาะเก็บไว้เป็นตัวเลือกเผื่อร้านอันดับต้นๆ ไม่สะดวก`;
       }
   }
 }
@@ -163,7 +164,7 @@ export default function App() {
     {
       id: "init",
       role: "ai",
-      text: "สวัสดี! ฉันคือ <b>AI Food Data Assistant 2.0</b> ถามเจาะจงรายชื่อร้านค้า เช็คข้อมูลสถิติตามย่าน หรือจำลองงบประมาณที่มีได้เลย พิมพ์อะไรก็ได้เพื่อปรึกษาครับ 🤖"
+      text: "สวัสดีครับ ผมคือ <b>AI Food Assistant</b> ช่วยค้นหาร้าน ดูงบต่อคน เช็กย่าน และเทียบตัวเลือกจากข้อมูลในตารางได้เลย ลองพิมพ์สิ่งที่อยากกินหรือย่านที่สนใจมาได้ครับ"
     }
   ]);
   const [chatInput, setChatInput] = useState<string>("");
@@ -627,7 +628,7 @@ export default function App() {
       return;
     }
 
-    if (!confirm("ต้องการยิงสัญญาณเริ่มต้นระบบ AI Scraper ตัวใหม่ใช่หรือไม่?\n\n⚠️ ข้อควรระวัง: การดึงและเริ่มทำความสะอาดข้อมูลสดผ่าน n8n ใช้เวลาประมาณ 1-2 นาที กรุณาหลีกเลี่ยงการรีเฟรชหน้าเว็บหรือสลับหน้าต่างเบราเซอร์กะทันหันในขณะที่เครือข่ายกำลังตอบรับข้อมูล เพื่อรักษาเสถียรภาพและป้องกันข้อมูลสูญหายกะทันหัน!")) {
+    if (!confirm("ต้องการดึงข้อมูลร้านอาหารชุดใหม่ใช่ไหม?\n\nระบบจะเรียก n8n เพื่อดึงและจัดข้อมูลจากแหล่งเดิม ใช้เวลาประมาณ 1-2 นาที ระหว่างนี้แนะนำให้เปิดหน้านี้ค้างไว้จนกว่าจะเสร็จครับ")) {
       return;
     }
 
@@ -636,7 +637,7 @@ export default function App() {
     setIsScraping(true);
     setIsLoading(true);
     setLoadingProgress(10);
-    setLoadingText("กำลังยิงสัญญาณทริกเกอร์ไปยังระบบสตรีม n8n Webhook...");
+    setLoadingText("กำลังส่งคำขอไปยัง n8n Webhook...");
 
     const initialDataString = JSON.stringify(rawData);
     const initialCount = rawData.length;
@@ -669,9 +670,9 @@ export default function App() {
       setIsLoading(false);
       setLoadingProgress(0);
       triggerWin95Alert(
-        "การส่งนสัญญาณล้มเหลว",
-        "ไม่สามารถเริ่มต้นสัญญาณ Webhook ได้เนื่องจากข้อจำกัดเครือข่าย",
-        `ทางหน้าบราว์เซอร์ปฏิเสธหรือขวางกั้นสัญญาณส่งออกไปยัง n8n\n\nรายละเอียดวิเคราะห์:\n${e.message || e}`,
+        "เริ่มดึงข้อมูลไม่สำเร็จ",
+        "ยังเชื่อมต่อไปยัง n8n ไม่ได้",
+        `เบราว์เซอร์หรือเครือข่ายอาจบล็อกการส่งคำขอไปยัง n8n\n\nรายละเอียด:\n${e.message || e}`,
         true,
         e.stack || ""
       );
@@ -691,7 +692,7 @@ export default function App() {
       progress = Math.min(92, 15 + Math.round((elapsedSeconds / maxSeconds) * 77));
 
       setLoadingProgress(progress);
-      setLoadingText(`ระบบกำลังดำเนินกระบวนการจำลองและสแกนพิกัด Google Maps... (${elapsedSeconds}/${maxSeconds} วินาที)\nสัญญาณเชื่อมต่อสดกับ n8n กำลังแก้ไข Google Sheet...`);
+      setLoadingText(`กำลังรอข้อมูลใหม่จาก Google Maps... (${elapsedSeconds}/${maxSeconds} วินาที)\nn8n กำลังอัปเดตข้อมูลลง Google Sheet...`);
 
       try {
         const result = await fetchSheetDataPreferred(SHEET_NAME);
@@ -708,7 +709,7 @@ export default function App() {
             }
 
             setLoadingProgress(96);
-            setLoadingText("ตรวจพบพฤติกรรมการเพิ่มข้อมูลใหม่ใน Google Sheets! กำลังคอยคูลดาวน์แถวอาหารที่ค้าง (10 วินาที)...");
+            setLoadingText("พบข้อมูลใหม่ใน Google Sheets แล้ว กำลังรอให้ระบบเขียนข้อมูลให้ครบอีกสักครู่...");
 
             // Cooldown delay for n8n to finish writing all rows
             setTimeout(async () => {
@@ -727,9 +728,9 @@ export default function App() {
               setLoadingProgress(0);
 
               triggerWin95Alert(
-                "อัปเดตข้อมูลเมนูสำเร็จ!",
-                "✨ ตรวจพบล้านและประมวลผลคะแนน AI เสร็จสิ้นเรียบร้อย!",
-                `อัลกอริทึมนวัตกรรมสามารถประมวลผลเพิ่มรายชื่อร้านเข้ามาใหม่ จำนวนร้านอาหารรวมในระบบขณะนี้คือ ${rawData.length} ร้านค้า ดัชนี AI Low Confidence ได้รับการคำนวณใหม่แล้วครับ`,
+                "อัปเดตข้อมูลสำเร็จ",
+                "✨ ดึงข้อมูลใหม่และคำนวณคะแนนเรียบร้อยแล้ว",
+                `ตอนนี้มีร้านอาหารในระบบ ${rawData.length} ร้าน และระบบได้ตรวจข้อมูลที่ควรทบทวนใหม่แล้วครับ`,
                 false
               );
             }, 10000);
@@ -761,9 +762,9 @@ export default function App() {
         setLoadingProgress(0);
 
         triggerWin95Alert(
-          "ครบรอบขีดจำกัดรอนำเข้า",
-          "⏱️ สิ้นสุดระยะเวลาการเฝ้ามองข้อมูลสด",
-          `ระบบใช้เวลาค้นหาครอบคลุม ${maxSeconds} วินาทีแล้ว คณะทำงานจำต้องหยุดการสแกนและดึงข้อมูลรอบล่าสุดมาแสดงผลให้คุณแทน (สถิติล่าสุด: ${rawData.length} ร้าน) คุณสามารถใช้งานระบบต่อได้ทันทีครับ`,
+          "ใช้เวลารอนานกว่าที่กำหนด",
+          "⏱️ ระบบหยุดรอข้อมูลใหม่ชั่วคราว",
+          `รอครบ ${maxSeconds} วินาทีแล้ว ระบบจึงดึงข้อมูลล่าสุดที่มีมาแสดงให้ก่อน (ตอนนี้มี ${rawData.length} ร้าน) คุณใช้งานต่อได้ทันทีครับ`,
           false
         );
       }
@@ -1025,7 +1026,7 @@ export default function App() {
       const isGreeting = greetings.some(g => query === g || query.startsWith(g + " ") || query.endsWith(" " + g));
 
       if (isGreeting) {
-        reply = `สวัสดีครับ! ผมคือ <b>AI Food Data Assistant 2.0</b> แผงผู้ช่วยตัดสินใจคัดกรองร้านอาหารย้อนยุควิเคราะห์สูงครับ 🤖<br><br>ผมได้รับการป้อนชุดแผนงานและข้อมูลสถิติของร้านอาหารต่างๆ ไว้ในสมอง คุณสามารถพิมพ์เจาะจงมองหาร้านอาหารได้หลากหลายความประสงค์ เช่น:<br>• <i>"มีร้านเนื้อย่างสยามแนะนำไหม"</i><br>• <i>"แนะนำคาเฟ่ยามวันหยุด"</i><br>• <i>"ช่วยสแกนหาร้านประหยัดอารีย์"</i>`;
+        reply = `สวัสดีครับ! ผมช่วยค้นหาร้านจากข้อมูลในระบบนี้ได้ เช่นดูร้านตามย่าน ตามประเภทอาหาร หรืองบต่อคน<br><br>ลองถามประมาณนี้ได้เลย:<br>• <i>"มีร้านเนื้อย่างแถวสยามไหม"</i><br>• <i>"แนะนำคาเฟ่สำหรับวันหยุด"</i><br>• <i>"หาร้านประหยัดแถวอารีย์"</i>`;
       } else {
         // Detect Area Key
         let matchedAreaKey: string | null = null;
@@ -1069,14 +1070,14 @@ export default function App() {
         const isRecommendationQuery = query.includes("แนะนำ") || query.includes("มีร้าน") || query.includes("หาร้าน") || query.includes("ไหนดี") || query.includes("ขอร้าน") || query.includes("ค้นหา");
         
         if (!matchedAreaKey && !matchedCategoryKey && !matchedItem && !isRecommendationQuery) {
-          reply = `🤖 ขออภัยครับคุณผู้ใช้งาน ผมเป็น <b>AI Food Data Assistant</b> ที่ได้รับการตั้งโปรแกรมให้อนุเคราะห์ข้อมูลเฉพาะ <b>ฐานข้อมูลร้านอาหารภายในระบบของระบบ</b> เท่านั้นครับ<br><br>ผมไม่ได้รับการอนุญาตให้คุยเรื่องสภาพดินฟ้าอากาศ การเมือง มุกตลกสัพเพเหระ หรือสานสัมพันธ์พูดคุยทั่วไปได้เนื่องจากความเสี่ยงทางข้อมูลมั่วซั่ว (Hallucination) ครับ<br><br>กรุณาระบุคีย์เวิร์ดพิกัดหลักเพื่อค้นหา เช่น:<br>• <i>"แนะนำร้านเด็ดทองหล่อ"</i><br>• <i>"ชาบูพรีเมียมอโศก"</i><br>• <i>"สแกนข้อมูลร้านประหยัดพร้อมพงษ์"</i>`;
+          reply = `ตอนนี้ผมตอบได้ดีที่สุดเมื่อถามเรื่องร้านอาหารในฐานข้อมูลนี้ครับ<br><br>ลองใส่ชื่อย่าน ประเภทอาหาร หรือชื่อร้าน เช่น:<br>• <i>"แนะนำร้านเด็ดทองหล่อ"</i><br>• <i>"ชาบูแถวอโศก"</i><br>• <i>"หาร้านประหยัดพร้อมพงษ์"</i>`;
         } else if (matchedItem) {
           const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(matchedItem.name + ' ราคา เมนู อาหาร')}`;
           const isEstimateMsg = matchedItem.isEstimatedPrice 
             ? `~${matchedItem.price}฿/คน (ประมาณการโดย AI) <a href="${searchUrl}" target="_blank" class="text-blue-700 underline text-[10px] ml-1">🔍 ตรวจสอบรูปภาพเมนูจริง</a>` 
             : `${matchedItem.price}฿/คน`;
 
-          reply = `🤖 <b>พบรายชื่อร้าน "${matchedItem.name}" ในระบบประวรรตนาการครับ:</b><br><br>
+          reply = `🤖 <b>พบร้าน "${matchedItem.name}" ในระบบครับ</b><br><br>
                    📍 <b>ย่าน:</b> ${matchedItem.area}<br>
                    🍲 <b>ประเภทอาหาร:</b> ${matchedItem.category}<br>
                    ⭐ <b>เรตติ้งปัจจุบัน:</b> ${matchedItem.rating} ดาว (${matchedItem.reviews} รีวิวสะสม)<br>
@@ -1108,14 +1109,14 @@ export default function App() {
 
           if (candidates.length > 0) {
             const resultsSlice = candidates.slice(0, 3);
-            let responseTitle = "✨ <b>ร้านอาหารแนะนำระดับคัดเกรดสูงสุดในระบบตามที่คุณขอดินัง:</b><br>";
+            let responseTitle = "✨ <b>ร้านที่น่าสนใจตามสิ่งที่คุณถาม:</b><br>";
             
             if (matchedAreaKey && matchedCategoryKey) {
-              responseTitle = `✨ <b>แนะนำกลุ่มอาหาร [${matchedCategoryKey}] บนย่าน [${matchedAreaKey}] ที่ดีที่สุดตามกฎสถิติ:</b><br>`;
+              responseTitle = `✨ <b>ร้าน${matchedCategoryKey}แถว${matchedAreaKey}ที่น่าสนใจ:</b><br>`;
             } else if (matchedAreaKey) {
-              responseTitle = `✨ <b>แนะนำร้านเด่นน่าสนใจบนทำเล [${matchedAreaKey}] คัดเกรนดาวค้างฟ้า:</b><br>`;
+              responseTitle = `✨ <b>ร้านเด่นแถว${matchedAreaKey}:</b><br>`;
             } else if (matchedCategoryKey) {
-              responseTitle = `✨ <b>สแกนร้านหมวดหมู่ [${matchedCategoryKey}] ท็อปแชนแนลเรตติ้งสูงสุด:</b><br>`;
+              responseTitle = `✨ <b>ร้านหมวด${matchedCategoryKey}ที่น่าลอง:</b><br>`;
             }
 
             reply = responseTitle + "<div class='flex flex-col gap-2 mt-2'>";
@@ -1141,10 +1142,10 @@ export default function App() {
             reply += "</div>";
 
             if (candidates.length > 3) {
-              reply += `<p class="text-[9px] text-gray-600 text-right mt-1">*ยังมีร้านค้าตรงขอบข่ายรอคุณเทียบวิเคราะห์ในแผงหลักอีก ${candidates.length - 3} ร้านครับ</p>`;
+              reply += `<p class="text-[9px] text-gray-600 text-right mt-1">*ยังมีร้านที่เข้าเงื่อนไขอีก ${candidates.length - 3} ร้าน ดูต่อได้ในตารางหลักครับ</p>`;
             }
           } else {
-            reply = `😅 ขออภัยปัญหาระดับเซ็กเมนต์ครับ! คณะประมวลผลไม่พบร้านค้าในภูมิภาค <b>${matchedAreaKey || ""}</b> ที่ตีกรอบด้วยของหวานอาหารคัดยศ <b>${matchedCategoryKey || ""}</b> ตามที่คุณร้องขอเลยครับ<br><br>กรุณาตรวจสอบชื่อตัวละครสเกลร้านค้า หรือเปลี่ยนพิกัดขยายวงจุดตรวจสแกนอีกครั้งในปุ่มแผงควบคุมด้านบนครับ`;
+            reply = `😅 ยังไม่พบร้านที่ตรงกับเงื่อนไข <b>${matchedAreaKey || ""}</b> <b>${matchedCategoryKey || ""}</b> ในข้อมูลชุดนี้ครับ<br><br>ลองเปลี่ยนคำค้น เลือกย่านกว้างขึ้น หรือดูจากตัวกรองด้านซ้ายได้เลย`;
           }
         }
       }
@@ -1316,7 +1317,7 @@ export default function App() {
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="text-blue-600 font-normal hover:underline text-[10px]" 
-                          title="สแกนคนจานราคาจริง"
+                          title="ค้นหาราคาและเมนูจริง"
                           onClick={(e) => e.stopPropagation()}
                         >
                           🔍
@@ -1447,12 +1448,12 @@ export default function App() {
               {isScraping ? (
                 <>
                   <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-600 animate-ping mr-1" />
-                  <span>กำลังดำเนินการสแกนผ่าน n8n...</span>
+                  <span>กำลังดึงข้อมูลผ่าน n8n...</span>
                 </>
               ) : (
                 <>
                   <RotateCcw className="w-3.5 h-3.5 animate-spin-slow" />
-                  <span>🔄 เริ่มบังคับระบบ Scrape ใหม่</span>
+                  <span>🔄 ดึงข้อมูลร้านใหม่</span>
                 </>
               )}
             </button>
@@ -1467,7 +1468,7 @@ export default function App() {
             </span>
             <div className="flex-1 min-w-0 overflow-hidden">
               <RetroMarquee scrollamount="3" behavior="scroll" direction="left" className="font-extrabold text-gray-900 block">
-                ข้อมูลจากระบบคลาวด์: <span className="text-[#000080] uppercase font-black underline decoration-double">{dataSource || "กำลังดึงข้อมูล..."}</span> &nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;&nbsp; อัปเดตล่าสุด (Updated): <span className="text-red-700 font-extrabold">{lastUpdatedTime || "ไม่มีข้อมูล"}</span> &nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;&nbsp; ยินดีต้อนรับสู่ AI Food Assistant แพลตฟอร์มวินเทจเพื่อการประเมินร้านอาหารคู่ใจคุณ! เลือกดูเมนู แผนที่นำทาง และคะแนนประมวลผลสูงสุดได้ทันที
+                แหล่งข้อมูล: <span className="text-[#000080] uppercase font-black underline decoration-double">{dataSource || "กำลังดึงข้อมูล..."}</span> &nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;&nbsp; อัปเดตล่าสุด: <span className="text-red-700 font-extrabold">{lastUpdatedTime || "ไม่มีข้อมูล"}</span> &nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;&nbsp; เลือกร้านจากย่าน ประเภทอาหาร ราคา รีวิว และคะแนนแนะนำได้ในหน้าเดียว
               </RetroMarquee>
             </div>
           </div>
@@ -1501,7 +1502,7 @@ export default function App() {
                 <div className="win95-title-bar mb-2 select-none">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5" />
-                    <span>📍 พิกัดย่านหลัก (Mapping 2.0)</span>
+                   <span>📍 เลือกย่าน</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 p-2 win95-inset bg-gray-50 max-h-56 overflow-y-auto scroll-win95">
@@ -1563,14 +1564,14 @@ export default function App() {
                 <div className="win95-title-bar mb-2">
                   <div className="flex items-center gap-1.5">
                     <Database className="w-3.5 h-3.5" />
-                    <span>🗄️ การจัดระเบียบตารางข้อมูล</span>
+                    <span>🗄️ ข้อมูลที่ระบบจัดให้</span>
                   </div>
                 </div>
                 <div className="win95-inset p-2.5 bg-white text-[11px] leading-relaxed text-gray-800 space-y-1">
-                  <p>• <b>กรองรายชื่อซ้ำ:</b> แสดงเฉพาะรายชื่อร้านที่ไม่ซ้ำกันในตาราง</p>
-                  <p>• <b>จัดกลุ่มตามย่าน:</b> จัดระเบียบพิกัดและที่อยู่ให้อ่านเป็นโซนย่านที่ชัดเจน</p>
-                  <p>• <b>แจ้งเตือนความถูกต้องต่ำ:</b> ขึ้นป้ายเตือนกรณีร้านมีคะแนนรีวิวน้อย</p>
-                  <p>• <b>ประมาณการช่วงราคา:</b> คำนวณช่วงราคาเฉลี่ยต่อคนกรณีที่ไม่มีราคาป้อนใน Google Sheet</p>
+                  <p>• <b>ตัดรายชื่อซ้ำ:</b> แสดงร้านแต่ละแห่งเพียงครั้งเดียว</p>
+                  <p>• <b>จัดตามย่าน:</b> อ่านทำเลได้ง่ายขึ้นจากข้อมูลที่อยู่</p>
+                  <p>• <b>เตือนข้อมูลน้อย:</b> ช่วยบอกว่าร้านไหนควรตรวจเพิ่ม</p>
+                  <p>• <b>ประมาณราคา:</b> เติมช่วงราคาคร่าวๆ เมื่อในชีตยังไม่มีข้อมูล</p>
                 </div>
               </div>
 
@@ -1603,7 +1604,7 @@ export default function App() {
               <div className="win95-window p-2.5 text-center select-none shadow">
                 <div className="text-[10px] uppercase font-black text-gray-600 flex items-center justify-center gap-1 mb-1">
                   <Building2 className="w-3 h-3 text-blue-700" />
-                  <span>TOTAL MATChes</span>
+                  <span>ร้านที่พบ</span>
                 </div>
                 <div className="text-2xl font-black text-blue-800 tracking-tight">
                   {systemStats.total} <span className="text-[10px] text-gray-500 font-normal">ร้าน</span>
@@ -1613,7 +1614,7 @@ export default function App() {
               <div className="win95-window p-2.5 text-center select-none shadow">
                 <div className="text-[10px] uppercase font-black text-gray-600 flex items-center justify-center gap-1 mb-1">
                   <Coins className="w-3 h-3 text-green-700" />
-                  <span>AVG PRICE/HEAD</span>
+                  <span>ราคาเฉลี่ย/คน</span>
                 </div>
                 <div className="text-2xl font-black text-green-700 tracking-tight">
                   {systemStats.avgPrice}฿ <span className="text-[10px] text-gray-500 font-normal">โดยประมาณ</span>
@@ -1623,7 +1624,7 @@ export default function App() {
               <div className="win95-window p-2.5 text-center select-none shadow">
                 <div className="text-[10px] uppercase font-black text-gray-600 flex items-center justify-center gap-1 mb-1">
                   <Sparkles className="w-3 h-3 text-amber-700" />
-                  <span>AVG DECISION SCORE</span>
+                  <span>คะแนนเฉลี่ย</span>
                 </div>
                 <div className="text-2xl font-black text-amber-800 tracking-tight">
                   {systemStats.avgScore}% <span className="text-[10px] text-gray-500 font-normal">เกรดเฉลี่ย</span>
@@ -1633,10 +1634,10 @@ export default function App() {
               <div className="win95-window p-2.5 text-center select-none shadow">
                 <div className="text-[10px] uppercase font-black text-gray-600 flex items-center justify-center gap-1 mb-1">
                   <ShieldCheck className="w-3 h-3 text-purple-700" />
-                  <span>HIGH-TRUST STORES</span>
+                  <span>ร้านที่น่าเชื่อถือ</span>
                 </div>
                 <div className="text-2xl font-black text-purple-800 tracking-tight">
-                  {systemStats.trustedCount} <span className="text-[10px] text-gray-500 font-normal">พาส</span>
+                  {systemStats.trustedCount} <span className="text-[10px] text-gray-500 font-normal">ร้าน</span>
                 </div>
               </div>
             </div>
@@ -1646,21 +1647,21 @@ export default function App() {
               <div className="win95-title-bar bg-[#000080] select-none">
                 <div className="flex items-center gap-1.5 font-black">
                   <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300 animate-pulse" />
-                  <span>⭐ TOP 3 AI INTELLIGENCE SELECTION (ระดับยอดมงกุฎพรีเมียม)</span>
+                  <span>⭐ ร้านแนะนำ 3 อันดับแรก</span>
                 </div>
               </div>
               
               {/* Situational Scenarios Switch Bar */}
               <div className="bg-gray-200 p-2 border-b border-black flex flex-wrap gap-x-4 gap-y-1.5 items-center text-xs">
-                <span className="font-bold border-r border-gray-400 pr-2 block select-none">🎯 ถ่วงน้ำหนักตามสถานการณ์:</span>
+                <span className="font-bold border-r border-gray-400 pr-2 block select-none">🎯 เลือกตามโอกาส:</span>
                 <div className="flex flex-wrap gap-2 md:gap-3">
                   {[
-                    { val: "default", label: "⚖️ สมดุลความคุ้มค่า", hint: "คํานวณเรตติ้ง ยอดรีวิว และราคา อย่างกลมกลืน" },
-                    { val: "safe", label: "🛡️ ปลอดภัย (ยอดรีวิวสูงสุด)", hint: "เน้นร้านขนาดใหญ่ที่มีฐานพยานยืนยันมากเป็นหลัก" },
-                    { val: "cheap", label: "💰 คืนงบกระเป๋า (ประหยัดค่าใช้จ่าย)", hint: "ปรับเพิ่มน้ำหนักเมนูราคาประหยัดต่อคน" },
-                    { val: "fast", label: "⚡ ด่วนจี๋! (อาหารกินไว)", hint: "คัดกรองกลุ่มราเมง/ตามสั่ง/คาเฟ่ ที่รอบสลับโต๊ะไว" },
-                    { val: "work", label: "💼 คุยธุรกิจหรู (คุยงาน)", hint: "ถ่วงน้ำหนักคาเฟ่เบเกอรี่หรืองานสเต็กเป็นองค์กรหลัก" },
-                    { val: "large", label: "👥 ทีมใหญ่สังสรรค์ (8-12 คน)", hint: "เจาะจงกลุ่มชาบูปิ้งย่างสำหรับเลี้ยงเปิดใจพนักงาน" }
+                    { val: "default", label: "⚖️ สมดุล", hint: "ดูราคา คะแนน และจำนวนรีวิวร่วมกัน" },
+                    { val: "safe", label: "🛡️ รีวิวเยอะ", hint: "เน้นร้านที่มีฐานรีวิวมากและข้อมูลนิ่ง" },
+                    { val: "cheap", label: "💰 ประหยัด", hint: "ให้ความสำคัญกับราคาต่อคน" },
+                    { val: "fast", label: "⚡ กินไว", hint: "เหมาะกับมื้อที่ต้องรีบ" },
+                    { val: "work", label: "💼 คุยงาน", hint: "เหมาะกับนัดคุยงานหรือรับแขก" },
+                    { val: "large", label: "👥 กลุ่มใหญ่", hint: "เหมาะกับมื้อ 8-12 คนหรืออาหารแชร์กัน" }
                   ].map(scenario => (
                     <label key={scenario.val} className="flex items-center gap-1 cursor-pointer select-none font-bold" title={scenario.hint}>
                       <input 
@@ -1700,9 +1701,9 @@ export default function App() {
                       >
                         {/* Title Bar Card */}
                         <div className={`win95-title-bar ${idx === 0 ? "bg-[#000080]" : "bg-[#4a505a]"} select-none`}>
-                          <span className="font-black text-xs">#{idx + 1} RECOMMEND</span>
+                          <span className="font-black text-xs">#{idx + 1} แนะนำ</span>
                           <span className="text-[10px] bg-white text-black px-1 border border-black font-black">
-                            {customScenarioScoreValue}% SCORE
+                            {customScenarioScoreValue}% คะแนน
                           </span>
                         </div>
 
@@ -1716,10 +1717,10 @@ export default function App() {
                           />
                           <div className="absolute top-1 left-1 flex gap-1">
                             {item.isTrusted && (
-                              <span className="badge bg-purple-600 text-white border-white scale-90">High Trust</span>
+                              <span className="badge bg-purple-600 text-white border-white scale-90">รีวิวแน่น</span>
                             )}
                             {item.isEstimatedPrice && (
-                              <span className="badge bg-yellow-400 text-black border-black scale-90" title="คำนวณถ่วงประเมินราคาโดย AI">AI-Est Price</span>
+                              <span className="badge bg-yellow-400 text-black border-black scale-90" title="ราคานี้เป็นการประมาณจากระบบ">ราคาโดยประมาณ</span>
                             )}
                           </div>
                         </div>
@@ -1733,20 +1734,20 @@ export default function App() {
                           {/* Mini Grid Stats */}
                           <div className="grid grid-cols-3 gap-1 my-2">
                             <div className="win95-inset bg-blue-50/50 p-1 text-center select-none">
-                              <div className="text-[7px] uppercase text-gray-500 font-bold">Rating</div>
+                              <div className="text-[7px] uppercase text-gray-500 font-bold">รีวิว</div>
                               <div className="text-[10px] font-black text-blue-800">{item.rating} ⭐</div>
                             </div>
                             <div className="win95-inset bg-green-50/50 p-1 text-center select-none">
-                              <div className="text-[7px] uppercase text-gray-500 font-bold">Price Range</div>
+                              <div className="text-[7px] uppercase text-gray-500 font-bold">ราคา</div>
                               <div className="text-[10px] font-black text-green-800 flex justify-center items-center gap-0.5">
                                 <span>{item.display_price}</span>
                                 {item.isEstimatedPrice && (
-                                  <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-normal hover:underline text-[9px]" title="แคนเมนูราคาจริง">🔍</a>
+                                  <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-normal hover:underline text-[9px]" title="ค้นราคาและเมนูจริง">🔍</a>
                                 )}
                               </div>
                             </div>
                             <div className="win95-inset bg-amber-50/50 p-1 text-center select-none">
-                              <div className="text-[7px] uppercase text-gray-500 font-bold">Base score</div>
+                              <div className="text-[7px] uppercase text-gray-500 font-bold">คะแนน</div>
                               <div className="text-[10px] font-black text-amber-800">{item.base_score}%</div>
                             </div>
                           </div>
@@ -1754,19 +1755,19 @@ export default function App() {
                           {/* Quick details */}
                           <div className="text-[10px] text-gray-700 space-y-1.5 flex-1">
                             <p className="flex items-center gap-1">
-                              <span className="text-blue-900 font-black">📍 ย่านพื้นที่:</span> <span className="font-bold underline">{item.area}</span>
+                              <span className="text-blue-900 font-black">📍 ย่าน:</span> <span className="font-bold underline">{item.area}</span>
                             </p>
                             <p className="flex items-center gap-1">
-                              <span className="text-gray-800 font-black">🍲 แนวจานอาหาร:</span> <span className="badge bg-slate-100">{item.category}</span>
+                              <span className="text-gray-800 font-black">🍲 ประเภท:</span> <span className="badge bg-slate-100">{item.category}</span>
                             </p>
                             
                             {/* Technical Badges indicators for High Trust, Low stats, Risk levels */}
                             <div className="flex flex-wrap gap-1.5 pt-1">
                               <span className={`badge ${confidenceObject.confidence >= 75 ? "bg-green-100 text-green-800 border-green-500" : confidenceObject.confidence >= 50 ? "bg-orange-100 text-orange-850 border-orange-500" : "bg-red-100 text-red-800 border-red-500"}`} title={confidenceObject.reasons.join('\n')}>
-                                Confidence: {confidenceObject.confidence}%
+                                ความน่าเชื่อถือ: {confidenceObject.confidence}%
                               </span>
                               <span className={`badge ${operationalRiskObject.level === "ต่ำ" ? "bg-green-100 text-green-800 border-green-500" : operationalRiskObject.level === "กลาง" ? "bg-orange-100 text-orange-855 border-orange-500" : "bg-red-100 text-red-800 border-red-500"}`}>
-                                Risk: {operationalRiskObject.level}
+                                ความเสี่ยง: {operationalRiskObject.level}
                               </span>
                             </div>
                           </div>
@@ -1775,7 +1776,7 @@ export default function App() {
                           <div className="mt-2.5 win95-inset bg-[#ffffe1] p-2 border border-gray-450 text-gray-900 leading-normal shadow-inner">
                             <div className="flex items-center gap-1 font-extrabold text-[#000080] text-[9.5px] border-b border-gray-300 pb-0.5 mb-1.5 uppercase select-none">
                               <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500 animate-pulse" />
-                              <span>💡 เหตุผลที่แนะนำ (AI Recommendation Why):</span>
+                               <span>💡 ทำไมถึงแนะนำร้านนี้</span>
                             </div>
                             <p className="font-extrabold text-[10px] leading-relaxed text-gray-800">
                               {getTopThreeReason(item, selectedScenario, idx + 1)}
@@ -1786,7 +1787,7 @@ export default function App() {
                           <div className="mt-3.5 pt-2 border-t border-dashed border-gray-400">
                             <details className="win95-inset p-1.5 bg-white text-[10px] leading-tight text-gray-800">
                               <summary className="cursor-pointer font-black text-blue-900 hover:underline select-none outline-none">
-                                🔬 วิเคราะห์เกณฑ์คะแนนเบื้อหลัง (Deep Reason)
+                                🔬 ดูที่มาของคะแนน
                               </summary>
                               
                               <div className="mt-2 text-[10px] space-y-2 leading-relaxed">
@@ -1794,21 +1795,21 @@ export default function App() {
                                 <div className="win95-inset p-1.5 bg-gray-50">
                                   <span className="font-bold text-gray-700 block mb-1">📊 เปรียบเทียบกับร้านอื่น:</span>
                                   {idx === 0 ? (
-                                    <span>ได้รับคะแนนรวมสูงสุดในกลุ่มย่านนี้ มีมิติคะแนนเฉลี่ยเป็นที่หนึ่งในหมวดที่เลือก</span>
+                                  <span>ได้คะแนนรวมสูงสุดในกลุ่มที่กำลังกรองอยู่</span>
                                   ) : (
-                                    <span>เป็นตัวเลือกแนะนำลำดับถัดมาที่มีคะแนนโดดเด่นและสัดส่วนความคุ้มค่าใกล้เคียงกับกลุ่มผู้นำ</span>
+                                     <span>เป็นตัวเลือกถัดมาที่คะแนนยังดีและความคุ้มค่าใกล้เคียงอันดับแรก</span>
                                   )}
                                 </div>
 
                                 {/* Dataset constraints honesty declaration */}
                                 <div className="win95-inset p-1.5 bg-gray-50">
-                                  <span className="font-bold text-gray-700 block mb-1">📃 ข้อมูลดิบจาก Google Sheet (Grounded Evidence):</span>
-                                  <span>ย่าน {item.area} | คะแนน {item.rating} ดาว | ผู้รีวิว {item.reviews} บัญชี <i>(*หมายเหตุ: คำนวณเบื้องต้นอ้างอิงสถิติที่มีการอัปเดตหลักใน Google Sheet)</i></span>
+                                   <span className="font-bold text-gray-700 block mb-1">📃 ข้อมูลอ้างอิงจาก Google Sheet:</span>
+                                   <span>ย่าน {item.area} | คะแนน {item.rating} ดาว | รีวิว {item.reviews} ครั้ง <i>(*คำนวณจากข้อมูลล่าสุดใน Google Sheet)</i></span>
                                 </div>
 
                                 {/* Score components breakdown */}
                                 <div className="space-y-1">
-                                  <span className="font-bold text-gray-700 block">📐 รายละเอียดสัดส่วนคะแนนแยกตามหัวข้อ ({selectedScenario}):</span>
+                                   <span className="font-bold text-gray-700 block">📐 คะแนนแยกตามหัวข้อ ({scenarioLabel(selectedScenario)}):</span>
                                   <div className="grid grid-cols-2 gap-1 text-[9px]">
                                     <div className="bg-blue-50/50 p-1 win95-inset">คะแนนรีวิวร้าน: {(item.scenario_parts?.quality || 0).toFixed(0)}%</div>
                                     <div className="bg-purple-50/50 p-1 win95-inset">คะแนนความนิยม: {(item.scenario_parts?.popularity || 0).toFixed(0)}%</div>
@@ -1828,7 +1829,7 @@ export default function App() {
                               className="win95-button text-[9px] flex-1 text-center font-bold flex items-center justify-center gap-0.5"
                             >
                               <MapPin className="w-2.5 h-2.5 text-red-700" />
-                              <span>MAP ลิงก์</span>
+                              <span>แผนที่</span>
                             </a>
                             {item.source && item.source.startsWith('http') ? (
                               <a 
@@ -1857,7 +1858,7 @@ export default function App() {
               <div className="win95-title-bar">
                 <div className="flex items-center gap-1.5 select-none">
                   <Database className="w-3.5 h-3.5" />
-                  <span>📂 RESTAURANT DATABASE (รวมบัญชีรายชื่อร้านทั้งหมด)</span>
+                  <span>📂 รายชื่อร้านทั้งหมด</span>
                 </div>
                 
                 {/* Search Bar DB */}
@@ -1866,7 +1867,7 @@ export default function App() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="สกรีนชื่อร้านย่อ..."
+                    placeholder="ค้นหาชื่อร้าน..."
                     className="text-black bg-white px-2 py-0.5 text-xs w-44 win95-inset outline-none focus:border-amber-600"
                     id="table-search-input"
                   />
@@ -1887,10 +1888,10 @@ export default function App() {
                   <thead className="sticky top-0 bg-gray-200 z-10 select-none">
                     <tr className="border-b-2 border-black">
                       {[
-                        { field: "name", label: "ชื่อร้านค้า ↕" },
+                        { field: "name", label: "ชื่อร้าน ↕" },
                         { field: "price", label: "งบประมาณ/คน ↕", align: "text-center" },
-                        { field: "rating", label: "เรตติ้งโหวต (รีวิว) ↕", align: "text-center" },
-                        { field: "base_score", label: "AI Score ↕", align: "text-center" },
+                        { field: "rating", label: "คะแนน (รีวิว) ↕", align: "text-center" },
+                        { field: "base_score", label: "คะแนนแนะนำ ↕", align: "text-center" },
                         { field: "category", label: "ประเภท" },
                         { field: "area", label: "ทำเล" }
                       ].map(col => {
@@ -1936,7 +1937,7 @@ export default function App() {
                             key={`${item.name}-${idx}`} 
                             className="hover:bg-blue-100/90 hover:text-[#000080] cursor-pointer bg-white transition-all duration-150 border-b border-gray-200"
                             onClick={() => setSelectedRestaurant(item)}
-                            title="คลิกเพื่อเปิดดูรายละเอียดฉบับวาดเต็มของร้านนี้"
+                            title="คลิกเพื่อดูรายละเอียดร้านนี้"
                           >
                             <td className="p-1.5 md:p-2 text-[9.5px] md:text-xs font-bold max-w-[110px] md:max-w-[150px] truncate underline decoration-dashed decoration-blue-400 group-hover:text-blue-900" title={item.name}>
                               {item.name}
@@ -1979,7 +1980,7 @@ export default function App() {
               <div className="win95-title-bar bg-[#0a246a] select-none">
                 <div className="flex items-center gap-1.5 font-bold">
                   <TrendingUp className="w-4 h-4 text-yellow-300" />
-                  <span>🤖 แฟ้มรายงาน AI ANALYSIS & INSIGHTS 2.0 (วิเคราะห์ตลาดและพฤติกรรมผู้บริโภค)</span>
+                  <span>🤖 สรุปภาพรวมร้านในข้อมูลชุดนี้</span>
                 </div>
               </div>
 
@@ -1991,11 +1992,11 @@ export default function App() {
                     <div className="win95-window p-2 bg-white flex flex-col justify-between">
                       <div>
                         <div className="win95-title-bar bg-[#104c8a] select-none">
-                          <span>1) ข้อมูลภาพรวมตลาดและระดับราคา (Market Overview & Price Analysis)</span>
+                          <span>1) ภาพรวมราคาและจำนวนร้าน</span>
                         </div>
                         <div className="p-2 text-xs text-gray-800 space-y-1.5 leading-relaxed">
-                          <p>• <b>กลุ่มตัวอย่างทั้งหมด (Total Stores):</b> มีความหนาแน่นร้านค้ารองรับ {filteredRestaurants.length} รายการในการประมวลผล</p>
-                          <p>• <b>งบประมาณประเมินเฉลี่ย (Average Cost):</b> ตกอยู่ที่ ~{systemStats.avgPrice}฿ ต่อคน</p>
+                          <p>• <b>จำนวนร้านที่นำมาคำนวณ:</b> {filteredRestaurants.length} ร้าน</p>
+                          <p>• <b>ราคาเฉลี่ยโดยประมาณ:</b> ~{systemStats.avgPrice}฿ ต่อคน</p>
                           <p>• <b>รวมจำนวนรีวิวทั้งหมด (Total Reviews Cohort):</b> {marketInsights.totalReviews ? marketInsights.totalReviews.toLocaleString() : 0} รีวิว (Reviews)</p>
                           <p>• <b>คะแนนเฉลี่ยทั้งกลุ่ม (Cohort Avg Rating):</b> {marketInsights.avgRating} ⭐</p>
                           <p>• <b>ขอบเขตราคา Quartile เปรียบเทียบ (Price Distribution):</b></p>
@@ -2038,9 +2039,9 @@ export default function App() {
                           </div>
                           
                           <div className="text-[10.5px] text-gray-700 space-y-1 mt-1">
-                            <p>• <b>Lowest Cost (ราคาเข้าถึงง่ายที่สุด):</b> <span className="text-green-800 font-bold">{marketInsights.cheapestEst ? `${marketInsights.cheapestEst.name} (~${marketInsights.cheapestEst.price}฿/คน ณ ย่าน ${marketInsights.cheapestEst.area})` : "N/A"}</span></p>
-                            <p>• <b>Highest Cost (ราคาจำลองสูงที่สุด):</b> <span className="text-red-800 font-bold">{marketInsights.expensiveEst ? `${marketInsights.expensiveEst.name} (~${marketInsights.expensiveEst.price}฿/คน ณ ย่าน ${marketInsights.expensiveEst.area})` : "N/A"}</span></p>
-                            <p>• <b>Rating Leader (ขวัญใจคะแนนรีวิว):</b> <span className="text-blue-900 font-bold">{marketInsights.topRatedEst ? `${marketInsights.topRatedEst.name} (${marketInsights.topRatedEst.rating}⭐ / ${marketInsights.topRatedEst.reviews} รีวิว)` : "N/A"}</span></p>
+                        <p>• <b>ราคาดีที่สุด:</b> <span className="text-green-800 font-bold">{marketInsights.cheapestEst ? `${marketInsights.cheapestEst.name} (~${marketInsights.cheapestEst.price}฿/คน ย่าน${marketInsights.cheapestEst.area})` : "N/A"}</span></p>
+                        <p>• <b>ราคาสูงที่สุดในชุดนี้:</b> <span className="text-red-800 font-bold">{marketInsights.expensiveEst ? `${marketInsights.expensiveEst.name} (~${marketInsights.expensiveEst.price}฿/คน ย่าน${marketInsights.expensiveEst.area})` : "N/A"}</span></p>
+                        <p>• <b>คะแนนรีวิวเด่น:</b> <span className="text-blue-900 font-bold">{marketInsights.topRatedEst ? `${marketInsights.topRatedEst.name} (${marketInsights.topRatedEst.rating}⭐ / ${marketInsights.topRatedEst.reviews} รีวิว)` : "N/A"}</span></p>
                           </div>
                         </div>
                       </div>
@@ -2065,17 +2066,17 @@ export default function App() {
                     {/* Hidden Gems and Risky warn indicators */}
                     <div className="win95-window p-2 bg-white col-span-1 md:col-span-2">
                       <div className="win95-title-bar bg-[#3e4450] select-none">
-                        <span>3) หมวดวิเคราะห์พิเศษ (Hidden Gems และ Premium/High-Price Outliers)</span>
+                        <span>3) ร้านน่าลองและร้านที่ควรเช็กราคาเพิ่ม</span>
                       </div>
                       <div className="p-2.5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
                         
                         {/* Hidden Gems Column */}
                         <div className="space-y-1.5">
-                          <span className="font-extrabold text-[12px] text-green-800 block">✨ ร้านลับคุณภาพยอดเยี่ยม (Hidden Gems)</span>
-                          <span className="text-[10px] text-gray-500 block leading-tight">เกณฑ์การคัดเลือก (Criteria): เรตติ้งสูงตั้งแต่ 4.5⭐ ขึ้นไป แต่ยังมีจำนวนรีวิวน้อยกว่า 150 ครั้ง เหมาะสำหรับการไปค้นพบรสชาติที่ยอดเยี่ยมในมุมมองใหม่</span>
+                          <span className="font-extrabold text-[12px] text-green-800 block">✨ ร้านน่าลองที่คนยังรีวิวน้อย</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">คะแนนตั้งแต่ 4.5⭐ ขึ้นไป แต่รีวิวยังน้อยกว่า 150 ครั้ง เหมาะกับคนที่ชอบลองร้านใหม่</span>
                           <div className="space-y-1.5">
                             {marketInsights.hiddenGemsList.length === 0 ? (
-                              <span className="text-[11px] text-gray-400 block italic">ไม่พบร้านเข้าเกณฑ์กลุ่มร้านแนะนำลับพิเศษ</span>
+                              <span className="text-[11px] text-gray-400 block italic">ยังไม่พบร้านที่เข้าเกณฑ์นี้</span>
                             ) : (
                               marketInsights.hiddenGemsList.map(gem => (
                                 <div key={gem.name} className="win95-inset p-1 bg-white text-[10.5px] flex justify-between gap-1">
@@ -2089,16 +2090,16 @@ export default function App() {
 
                         {/* Potentially overpriced Column */}
                         <div className="space-y-1.5">
-                          <span className="font-extrabold text-[12px] text-red-800 block">⚠️ กลุ่มร้านราคาพรีเมียม / ราคาสูงเกินคะแนนเฉลี่ย (Premium & High-Price Outliers)</span>
-                          <span className="text-[10px] text-gray-500 block leading-tight">เกณฑ์การประเมิน (Criteria): ราคาสูงกว่าระดับ P75 ({marketInsights.p75}฿) แต่เมื่อคำนวณสัดส่วนคะแนนรวม AI Decision คะแนนตกลงต่ำกว่ามาตรฐานความคุ้มทุน</span>
+                          <span className="font-extrabold text-[12px] text-red-800 block">⚠️ ร้านราคาสูงที่ควรเช็กก่อนจอง</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">ราคาอยู่ในกลุ่มสูงกว่า {marketInsights.p75}฿ ต่อคน แต่คะแนนความคุ้มค่ายังไม่เด่นเท่าราคา</span>
                           <div className="space-y-1.5">
                             {marketInsights.overpricedWarning.length === 0 ? (
-                              <span className="text-[11px] text-gray-400 block italic">ไม่มีรายการร้านอร่อยที่ราคาสูงเกินเกณฑ์สถิติความคุ้มค่ารอบนี้</span>
+                              <span className="text-[11px] text-gray-400 block italic">ยังไม่มีร้านที่ต้องเตือนเรื่องราคาในรอบนี้</span>
                             ) : (
                               marketInsights.overpricedWarning.slice(0, 3).map(warn => (
                                 <div key={warn.name} className="win95-inset p-1 bg-white text-[10.5px] flex justify-between gap-1">
                                   <span className="font-bold text-red-800 truncate">{warn.name}</span>
-                                  <span className="font-bold whitespace-nowrap">{warn.price}฿ | คะแนนสถิติ: {warn.base_score}%</span>
+                                  <span className="font-bold whitespace-nowrap">{warn.price}฿ | คะแนน: {warn.base_score}%</span>
                                 </div>
                               ))
                             )}
@@ -2111,31 +2112,31 @@ export default function App() {
                     {/* Top Picks Recommendations */}
                     <div className="win95-window p-2 bg-white col-span-1 md:col-span-2">
                       <div className="win95-title-bar bg-green-900 select-none">
-                        <span>4) ผลวิเคราะห์ร้านแนะนำพิเศษจากโมเดลคะแนน (AI Decision Top Picks)</span>
+                        <span>4) ร้านเด่นจากคะแนนรวม</span>
                       </div>
                       <div className="p-2.5 grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Best Budget Value Options */}
                         <div className="space-y-1.5">
-                          <span className="font-extrabold text-[12px] text-green-800 block">⭐ Best Value Picks (เมนูยอดเยี่ยมคุ้มค่าเงินสูงสุด)</span>
-                          <span className="text-[10px] text-gray-500 block leading-tight">คัดเลือกจากร้านที่ผู้ใช้งานเฉลี่ยชื่นชอบคะแนนประเมินอยู่ในแถวหน้า แต่ราคาเหมาะสมที่สุด ให้ความสมดุลด้านราคาต่อหัวที่ยอดเยี่ยม</span>
+                          <span className="font-extrabold text-[12px] text-green-800 block">⭐ ตัวเลือกคุ้มราคา</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">คัดจากร้านที่คะแนนดีและราคาไม่แรง เหมาะกับการเริ่มดูตัวเลือก</span>
                           <div className="space-y-1.5">
                             {marketInsights.budgetValueBest && marketInsights.budgetValueBest.length > 0 ? (
                               marketInsights.budgetValueBest.slice(0, 3).map(item => (
                                 <div key={item.name} className="win95-inset p-1 bg-white text-[10.5px] flex justify-between gap-1 items-center">
                                   <span className="font-bold text-gray-900 truncate">{item.name}</span>
-                                  <span className="text-green-700 font-bold whitespace-nowrap text-[10px]">{item.display_price} | คะแนนความคุ้มค่า {item.base_score}%</span>
+                                  <span className="text-green-700 font-bold whitespace-nowrap text-[10px]">{item.display_price} | คะแนน {item.base_score}%</span>
                                 </div>
                               ))
                             ) : (
-                              <span className="text-[11px] text-gray-400 block italic">ไม่มีรายการแนะนำที่สอดคล้องตามเกณฑ์สถิตินี้</span>
+                              <span className="text-[11px] text-gray-400 block italic">ยังไม่มีร้านที่เข้าเกณฑ์นี้</span>
                             )}
                           </div>
                         </div>
 
                         {/* Safest / Most Established Picks */}
                         <div className="space-y-1.5">
-                          <span className="font-extrabold text-[12px] text-blue-800 block">👑 Most Established Picks (ร้านขวัญใจมหาชน คะแนนรีวิวเสถียรที่สุด)</span>
-                          <span className="text-[10px] text-gray-500 block leading-tight">วิเคราะห์จากกลุ่มร้านที่มีปริมาณจำนวนผู้รีวิวสูงสุด มีความคงเส้นคงวา มีอันตรายหรือความเสี่ยงต่ำที่สุดในการไปลิ้มลองความอร่อย</span>
+                          <span className="font-extrabold text-[12px] text-blue-800 block">👑 ร้านที่รีวิวแน่นที่สุด</span>
+                          <span className="text-[10px] text-gray-500 block leading-tight">ดูจากจำนวนรีวิวสูงและคะแนนค่อนข้างนิ่ง เหมาะกับคนที่อยากเลือกแบบมั่นใจ</span>
                           <div className="space-y-1.5">
                             {marketInsights.safestList && marketInsights.safestList.length > 0 ? (
                               marketInsights.safestList.slice(0, 3).map(item => (
@@ -2168,10 +2169,10 @@ export default function App() {
                 <div className="flex justify-between items-center w-full">
                   <div className="flex items-center gap-1.5 font-bold">
                     <AlertTriangle className="w-4 h-4 text-yellow-300 fill-yellow-300 animate-pulse" />
-                    <span>🚩 Human Review Queue</span>
+                    <span>🚩 รายการที่ควรตรวจเพิ่ม</span>
                   </div>
                   <span className="text-[10px] bg-red-700 text-white font-black px-1.5 py-0.5 border border-white">
-                    {flagFilterSeverity === "all" ? allHumanReviewFlags.length : filteredHumanReviewFlags.length} รายการตรวจสอบค้างคา
+                    {flagFilterSeverity === "all" ? allHumanReviewFlags.length : filteredHumanReviewFlags.length} รายการ
                   </span>
                 </div>
               </div>
@@ -2182,7 +2183,7 @@ export default function App() {
                   
                   {/* Severity buttons filters */}
                   <div className="flex items-center gap-1.5 text-xs">
-                    <span className="font-bold select-none">ระดับเตือนภัย:</span>
+                    <span className="font-bold select-none">ระดับความสำคัญ:</span>
                     <div className="flex gap-1">
                       {[
                         { val: "all", label: "ทั้งหมด", color: "bg-gray-100" },
@@ -2203,7 +2204,7 @@ export default function App() {
 
                   {/* Flag Search Input */}
                   <div className="flex-1 flex gap-1.5 items-center">
-                    <span className="text-xs font-bold whitespace-nowrap select-none">ค้นร้านปัญหารายการ:</span>
+                    <span className="text-xs font-bold whitespace-nowrap select-none">ค้นหารายการ:</span>
                     <div className="relative flex-1">
                       <input 
                         type="text"
@@ -2234,7 +2235,7 @@ export default function App() {
                 {filteredHumanReviewFlags.length === 0 ? (
                   <div className="py-8 text-center text-xs text-green-700 font-bold select-none flex flex-col items-center justify-center gap-1">
                     <CheckCircle2 className="w-6 h-6 text-green-600" />
-                    <span>ไม่พบธงข้อพิพาทหรือปัญหาสถิติ Low Confidence เจาะจงตามตัวเลือกนี้ครับ</span>
+                    <span>ไม่พบรายการที่ต้องตรวจเพิ่มตามตัวเลือกนี้ครับ</span>
                   </div>
                 ) : (
                   <div className="space-y-2.5">
@@ -2290,7 +2291,7 @@ export default function App() {
 
                               {/* Detailed Behavioral Reason explanation */}
                               <div>
-                                <span className="text-gray-500 font-bold block text-[9px] uppercase tracking-wider">บทวิเคราะห์สัญญาณปัญหา (Detailed Reason):</span>
+                                <span className="text-gray-500 font-bold block text-[9px] uppercase tracking-wider">เหตุผลที่ควรตรวจ:</span>
                                 <p className="text-gray-800 text-[11px]">
                                   {flag.reason}
                                 </p>
@@ -2298,7 +2299,7 @@ export default function App() {
 
                               {/* Target Action Guidelines */}
                               <div className="bg-orange-50/50 p-2 border-l-4 border-orange-500 win95-inset">
-                                <span className="text-orange-950 font-black text-[10px] uppercase block mb-0.5">📋 แนะนำคำสั่งปฏิบัติการแก้ใขข้อมูลสำหรับแอดมิน:</span>
+                                <span className="text-orange-950 font-black text-[10px] uppercase block mb-0.5">📋 สิ่งที่แนะนำให้ตรวจ:</span>
                                 <p className="text-orange-900 text-[10px] font-medium leading-relaxed">
                                   {flag.action}
                                 </p>
@@ -2313,7 +2314,7 @@ export default function App() {
               </div>
               
               <div className="p-1 px-3 bg-gray-200 text-[9.5px] text-gray-700 font-bold select-none border-t border-gray-300">
-                ℹ️ คำจำกัดความความน่าเชื่อถือสถิติ: คะแนนโหวตและราคาที่ไม่น่าไว้วางใจจะถูกแสดงที่นี่เพื่อคัดกรองเนื้อหาไม่สมเหตุสมผลออก
+                ℹ️ ระบบจะแสดงร้านที่ข้อมูลยังน่าสงสัย เช่น รีวิวเยอะ/น้อยผิดปกติ ราคาไม่ชัด หรือไม่มีลิงก์ยืนยัน เพื่อให้ตรวจซ้ำก่อนนำไปใช้จริง
               </div>
             </div>
 

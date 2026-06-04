@@ -50,12 +50,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "คะแนนไร้ที่ติบนตัวแทนสถิติแคบขั้นวิกฤต (Perfect Score with Sparse Reviews Bias)",
+      type: "คะแนนเต็มแต่รีวิวยังน้อย",
       severity: "high",
       flagCode: "FLG-BIAS-01",
       metric: `Rating: ${item.rating}⭐, Reviews: ${item.reviews}`,
-      reason: `ระดับความน่าเชื่อถือไม่นิ่งประจักษ์: ทางร้านประคองเกรดสมบูรณ์แบบ 5.0 ดาวอย่างงดงาม ทว่าถูกค้ำยันโดยผู้โหวตขนาดมินิมอลเพียง ${item.reviews} บัญชี ซึ่งสุ่มเสี่ยงเกิดจากกลุ่มเครือญาติหรือพนักงานป้อนสแตติกเชิงบวก (Staff & Friend Positive Bias) ในสภาพการณ์จำใจ และยังไม่มีมวลชนเฉลี่ยมาช่วยพิสูจน์ถ่วงจริง`,
-      action: "ดึงคะแนนของทางร้านออกจากการจัดอันดับระดับยอดลำดับต้นสูงสุดชั่วคราว หรือส่งเจ้าหน้าที่ผู้ตรวจเยี่ยมไร้ตัวตน (Mystery Shoppers) ไปวัดรสชาติเพื่อตรวจสอบดัชนีคะแนนจริง"
+      reason: `ร้านได้ 5.0 ดาว แต่มีรีวิวเพียง ${item.reviews} ครั้ง คะแนนจึงยังอาจแกว่งง่ายและควรดูรีวิวจริงประกอบ`,
+      action: "ตรวจรีวิวล่าสุดและรูปจาก Google Maps ก่อนใช้ร้านนี้เป็นตัวเลือกแนะนำอันดับต้นๆ"
     });
   }
 
@@ -64,12 +64,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ช่วงเรตติ้งลอยตัวสูงสวนทางประชากรพยาน (Suspicious Initial Rating Bias)",
+      type: "คะแนนสูงมากแต่ฐานรีวิวยังบาง",
       severity: "high",
       flagCode: "FLG-BIAS-02",
       metric: `Rating: ${item.rating}⭐, Reviews: ${item.reviews}`,
-      reason: `แกนสถิติยังอ่อนแอกลับรันเรตสูงลอย: เรตติ้งทะยานขึ้นถึง ${item.rating} ดาว ภายใต้จำนวนกลุ่มผู้วิจารณ์สะสมต่ำเตี้ยเพียง ${item.reviews} ครั้ง ตัวแปรสถิติจึงมีสัดส่วนคลาดเคลื่อนที่คาดการณ์ได้สูง (Sampling Error Margins) ทำให้ระดับความปลอดภัยไม่นิ่งพอสำหรับกลุ่มผู้ใช้ทั่วไป`,
-      action: "ทำเครื่องหมายเตือนความผันผวนของความเห็นผู้ใช้ในหน้าต่างจัดเก็บ พร้อมร่วมรณรงค์กระตุ้นให้นักชิมในแอปเข้าไปเขียนคอมเมนต์เพิ่มจำนวนประชากรวิจัย"
+      reason: `คะแนน ${item.rating} ดาวถือว่าสูง แต่ยังมีรีวิวเพียง ${item.reviews} ครั้ง ทำให้ความมั่นใจของข้อมูลยังไม่แข็งแรง`,
+      action: "แสดงเป็นร้านน่าลองได้ แต่ควรติดป้ายว่าข้อมูลรีวิวยังน้อย"
     });
   }
 
@@ -78,12 +78,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ความเห็นอิ่มตัวช่วงเริ่มสะสมประชากรพยาน (High Rating Sparse Sample)",
+      type: "คะแนนดีแต่รีวิวยังไม่มาก",
       severity: "medium",
       flagCode: "FLG-BIAS-03",
       metric: `Rating: ${item.rating}⭐, Reviews: ${item.reviews}`,
-      reason: `กลุ่มข้อจำกัดช่วงเปลี่ยนรอยต่อข้อมูล: ได้รับเรตติ้งที่สง่างาม (${item.rating} ดาว) ถ่วงคะแนนด้วยพยานวิจารณ์ ${item.reviews} ราย ซึ่งเป็นตัวอย่างสถิติตอนต้น (Initial Buffer Sample) ยังยากที่จะยืนยันคุณภาพคงเส้นคงวารอบด้านเมื่อคิวเต็มพิกัด`,
-      action: "คอยติดตามวิเคราะห์อัตราการเติบโตของรีวิวเฉลี่ยรายปักษ์ผ่านบอร์ดระบบวิเคราะห์ข้อมูล และตรึงป้ายเตือนช่วงงวดพ้นผ่านชั่วคราว"
+      reason: `ร้านได้คะแนน ${item.rating} ดาวจากรีวิว ${item.reviews} ครั้ง ถือว่าน่าสนใจ แต่ยังควรติดตามรีวิวเพิ่มอีกสักระยะ`,
+      action: "คงไว้ในรายการแนะนำได้ แต่ควรให้ผู้ใช้เห็นจำนวนรีวิวชัดเจน"
     });
   }
 
@@ -92,12 +92,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "สถิติผู้ร่วมประเมินต่ำวิกฤตปฏิเสธนัยสำคัญ (Severe Review Deficiency)",
+      type: "รีวิวน้อยมาก",
       severity: "high",
       flagCode: "FLG-STAT-01",
       metric: `Reviews: ${item.reviews}`,
-      reason: `จุดบอดทางคณิตศาสตร์สากล: ร้านค้ามียอดรีวิวรวมต่ำเพียง ${item.reviews} รีวิว เป็นค่าเฉลี่ยสุ่มที่ปราศจากความสำคัญเชิงสถิติ (Statistically Insignificant) ไม่อาจสะท้อนความสม่ำเสมอของเนื้อแท้วัตถุดิบ ความสุภาพ หรือสภาพดักแอร์ภายในร้านในทุกมิติเวลาได้`,
-      action: "แนบท้ายเตือนกลุ่มผู้ทาน '🚩 ความเห็นข้างน้อยมาก' ในระนาบกล่อง UI ทุกหน้าต่าง เพื่อปะปนจุดตรวจเช็คความเสี่ยง"
+      reason: `ร้านมีรีวิวเพียง ${item.reviews} ครั้ง ข้อมูลอาจยังไม่สะท้อนประสบการณ์จริงของลูกค้าส่วนใหญ่`,
+      action: "ติดป้ายเตือนว่ารีวิวยังน้อย และแนะนำให้ผู้ใช้ตรวจรูป/คอมเมนต์ล่าสุดก่อนตัดสินใจ"
     });
   }
 
@@ -106,12 +106,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ขาดหลักประจักษ์ฐานรีวิวอย่างสิ้นเชิง (Zero Google Review Basis)",
+      type: "ยังไม่มีรีวิว",
       severity: "high",
       flagCode: "FLG-STAT-02",
       metric: `Reviews: 0`,
-      reason: `สุญญากาศแผนที่ความคิดเห็นผู้ใช้งาน: ไม่มีประวัติร่องรอยการโหวตคะแนนหรือคะแนนดิบบนคลาวด์ Google Maps เลย อาจเป็นผู้ผลิตหน้าร้านรายย่อยที่จดทะเบียนผิดพิกัด หรือเพิ่งตั้งต้นทดลองสร้างธุรกิจแบบ Soft Launch`,
-      action: "ประสานงานกับโมเดอเรเตอร์เพื่อค้นหาช่องทางยืนยันที่อยู่ผ่านไลน์ หรือเช็คเฟซบุ๊กเพื่อยืนยันว่าเปิดร้านทำการจริงพิกัดนี้ก่อนอนุมัติติดป้าย"
+      reason: "ยังไม่พบรีวิวจาก Google Maps จึงยืนยันคุณภาพและสถานะร้านได้ยาก",
+      action: "ตรวจว่าร้านเปิดจริงหรือไม่ และเพิ่มลิงก์ยืนยันจาก Google Maps หรือช่องทางร้าน"
     });
   }
 
@@ -120,12 +120,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "นัยสำคัญความไม่พอใจสูงเชิงสถิติมวลรวม (Large Scale Quality Alert)",
+      type: "รีวิวเยอะ แต่คะแนนต่ำ",
       severity: "medium",
       flagCode: "FLG-STAT-03",
       metric: `Rating: ${item.rating}⭐, Reviews: ${item.reviews}`,
-      reason: `ฐานความผิดหวังคงที่ในกลุ่มมวลชนขนาดมหึมา: แม้ร้านค้ามีกลุ่มทดลองกินมหาศาลถึง ${item.reviews} คน แต่ขอบเขตเกรดเฉลี่ยร่วงหล่นต่ำกว่า 4.0 ซึ่งบ่งชี้ปัญหาวงกว้างถาวรเชิงทัศนคติบริการหรือปัญหาคุณภาพสัดส่วนเมนูขัดต่อกระบวนการ`,
-      action: "ตรวจสอบวิเคราะห์เชิงลึกสกัดคีย์เวิร์ดของกลุ่มคะแนนรีวิว 1-2 ดาวเพื่อดักหาประเด็นขัดข้องยอดนิยมที่เป็นปัญหาของแอป"
+      reason: `มีรีวิวมากถึง ${item.reviews} ครั้ง แต่คะแนนต่ำกว่า 4.0 อาจสะท้อนปัญหาที่เกิดซ้ำ เช่น รสชาติ บริการ หรือราคา`,
+      action: "อ่านรีวิวคะแนนต่ำเพื่อดูประเด็นซ้ำก่อนนำไปแนะนำ"
     });
   }
 
@@ -134,23 +134,23 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "คะแนนด่ำดิ่งต่ำเกณฑ์ความปลอดภัยมาตรฐาน (Substandard Rating Alert)",
+      type: "คะแนนต่ำกว่ามาตรฐาน",
       severity: "high",
       flagCode: "FLG-QUAL-01",
       metric: `Rating: ${item.rating}⭐`,
-      reason: `สัญญาณเสี่ยงภัยเชิงพฤติกรรมการทานระดับ Red Flag: ธุรกิจอาหารที่พยุงคะแนนเฉลี่ยหลุดต่ำกว่า 3.7 ดาว ถือเป็นการถดถอยอย่างร้ายแรง คณะประเมินมักชี้นำถึงปัญหาปนเปื้อนในเศษจานคริสตัล คิวล่าช้าจราจรพินาศ หรือการสื่อสารที่มีประเด็นความรุนแรงสะสม`,
-      action: "ระงับการติดมุดป้ายดาวบนหน้าร้านแนะนำเด็ดของระบบทันที พร้อมพิจารณาปิดบังฟังก์ชันกดแม็กดาวชั่วคราวจนกว่าจะมีการรีโนเวทคุณภาพดี"
+      reason: `คะแนนเฉลี่ย ${item.rating} ดาวค่อนข้างต่ำเมื่อเทียบกับร้านทั่วไป อาจมีประเด็นเรื่องคุณภาพ บริการ หรือความคุ้มค่า`,
+      action: "ไม่ควรดันเป็นร้านแนะนำหลักจนกว่าจะตรวจรีวิวล่าสุดเพิ่มเติม"
     });
   } else if (item.rating >= 3.7 && item.rating <= 3.9) {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "คะแนนต่ำก้ำกึ่งต่ำกว่าเกณฑ์ความพึงพอใจกลาง (Moderate Quality Warning)",
+      type: "คะแนนค่อนข้างต่ำ",
       severity: "medium",
       flagCode: "FLG-QUAL-03",
       metric: `Rating: ${item.rating}⭐`,
-      reason: `คาบเกี่ยวระดับเสถียรอาหารผันแปรง่าย: เรตติ้งแกว่งตัวอยู่ที่ ${item.rating} ดาวสะสม บ่งบอกจุดชำรุดในความประณีตของผลิตภัณฑ์ อาจเด่นทางของแห้งแต่สูตรน้ำแกงผิดพลาด หรือบริการดีแต่ชงเครื่องดื่มเสิร์ฟสลับสอดส่องบ่อยครั้ง`,
-      action: "แนะให้ลูกค้าผู้ใช้ระบบตรวจสอบคอมเมนต์แย้งจาก Google Maps ก่อนจองที่นั่งเพื่อเฝ้าระวังไม่ให้ผิดหวังงบ"
+      reason: `คะแนน ${item.rating} ดาวอยู่ในช่วงที่ควรอ่านรีวิวประกอบ เพราะประสบการณ์ลูกค้าอาจไม่สม่ำเสมอ`,
+      action: "แนะนำให้ผู้ใช้เปิดดูรีวิวล่าสุดก่อนจองหรือเดินทาง"
     });
   }
 
@@ -159,12 +159,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ฐานประชากรเสียงแตกแยกสายรุนแรง (Polarized Sentiment Profile)",
+      type: "รีวิวเยอะและความคิดเห็นค่อนข้างผสม",
       severity: "medium",
       flagCode: "FLG-QUAL-02",
       metric: `Rating: ${item.rating}⭐, Reviews: ${item.reviews}`,
-      reason: `กลุ่มคนรักเท่าผืนหนังคนชังเท่าผืนเสื่อ: จำนวนผู้อัดคะแนนปริมาณหนาแน่นสะสมจำนวน ${item.reviews} บัญชี แต่ดัชนีเกาะตำแหน่งกลางค่อนแย่ 4.0 - 4.2 สะท้อนเสียงความเห็นหักเหสองขั้วอย่างชัดเจน (อาจชื่นชอบเรื่องบรรยากาศเกลียดเรื่องราคา หรือรักรสเผ็ดรังเกียจพริกไทยกระป๋อง)`,
-      action: "จัดทำป้ายเตือนลักษณะ 'เสียงวิจารณ์แตกแยกขัดแย้ง' ในระบบเพื่อเตือนผู้บริโภคให้พิจารณารูปหน้าเมนูอย่างถี่ถ้วน"
+      reason: `มีรีวิว ${item.reviews} ครั้ง แต่คะแนนอยู่ช่วงกลาง อาจหมายถึงบางคนชอบมากและบางคนไม่ประทับใจ`,
+      action: "สรุปประเด็นรีวิวบวก/ลบให้ชัด เพื่อช่วยผู้ใช้ตัดสินใจตามความชอบของตัวเอง"
     });
   }
 
@@ -173,12 +173,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ระดับเรตงบประมาณผิดแผกหมวดอาหารท้องถิ่น (Street Food Budget Outlier)",
+      type: "ราคาสูงกว่าปกติสำหรับหมวดนี้",
       severity: "medium",
       flagCode: "FLG-COST-03",
       metric: `Price: ${item.price}฿/คน, Cat: ${item.category}`,
-      reason: `งบต่อหัวหมวดอาหารริมทางกระโดดพุ่งผิดสัดส่วน: ร้านหมวดส้มตำ ก๋วยเตี๋ยว หรือตามสั่งสตรีทฟู้ด ตรวจพบหัวบิลสะสมถึง ~${item.price}฿ ต่อคน ซึ่งพุ่งแหลกกิฟท์เซ็ตปกติกว่ามาตรฐานอุตสาหกรรมสี่เท่าตัว เสี่ยงต่อความไม่พึงพอใจของงบกระเป๋า`,
-      action: "วิเคราะห์ภาพถ่ายเลย์เอาต์โต๊ะว่าเข้าข่ายเป็นระดับร้านห้างเช่าหรูหราอลังการ (Luxury Boutique Street) หรือเป็นราคาฉกฉวยนักเดินทางเกรดโก่งราคา"
+      reason: `ร้านหมวดอาหารไทย/ก๋วยเตี๋ยว/ตามสั่งมีราคาเฉลี่ยประมาณ ${item.price}฿ ต่อคน ซึ่งสูงกว่าที่ผู้ใช้มักคาดหวัง`,
+      action: "ตรวจว่าเป็นร้านพรีเมียมจริงหรือข้อมูลราคาในชีตสูงเกินไป"
     });
   }
 
@@ -187,12 +187,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "บุฟเฟต์ราคาประต่ำผิดนิสัยตลาดสุขสัญจร (Buffet Underpriced Risk)",
+      type: "บุฟเฟต์ราคาต่ำผิดปกติ",
       severity: "medium",
       flagCode: "FLG-COST-04",
       metric: `Price: ${item.price}฿/คน, Cat: ${item.category}`,
-      reason: `ระดับราคาถูกผิดวิสัยโครงสร้างเศรษฐศาสตร์ต้นทุน: งานชาบูปิ้งย่างเนื้อเสิร์ฟจานไม่อั้นที่มีระดับราคาต่ำกว้า 250 บาทต่อหัว ย่อมกระตุ้นดัชนีตรวจสุขอนามัยต่ำ บ่งชี้ความเสี่ยงวัตถุดิบขาดตกความสด ปัญหาการแช่แข็งเสื่อมถอย หรือเนื้อแต่งแต่งสีเลียนแบบ`,
-      action: "แจ้งเตือน 'เฝ้าระวังประเด็นความสะอาดและการปรุงสุกถั่วฝาน' บนหน้ารายละเอียดร้านเพื่อปกป้องชีวิตสุขภาวะผู้ชิม"
+      reason: `ร้านชาบู/ปิ้งย่างมีราคาต่ำกว่า 250฿ ต่อคน ซึ่งอาจเป็นโปรโมชัน ข้อมูลเก่า หรือข้อมูลราคาที่ไม่ครบ`,
+      action: "ตรวจเมนูและเงื่อนไขราคาจริงก่อนแสดงเป็นดีลคุ้มค่า"
     });
   }
 
@@ -201,12 +201,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ข้อมูลโครงสร้างราคาสูญหายถาวร (Missing Rate/Price Matrix)",
+      type: "ไม่มีข้อมูลราคา",
       severity: "high",
       flagCode: "FLG-COST-05",
       metric: `Price: 0`,
-      reason: `บ้อมูลร่วงหายจากแผ่นประเมิน: ไม่มีฟิลด์ตัวเลขค่าเงินแสดงช่วงอาหารเลย ระบบบีบใช้ตารางประมวลไม่ได้ เสี่ยงปิดกั้นฟิลเตอร์จำลองงบผู้ใช้กลุ่มใหญ่`,
-      action: "เร่งรีบเข้าไปค้นหาแผ่นที่ระบุป้ายแทง หรือกระตุ้นปุ่มสำรวจบิลสัญจรกรอกข้อมูลตัวเลขกลับเข้าไปในพิกัดเซลล์"
+      reason: "ไม่พบตัวเลขราคาต่อคน ทำให้ตัวกรองงบประมาณและคะแนนความคุ้มค่าแม่นยำน้อยลง",
+      action: "เติมราคาคร่าวๆ หรือช่วงราคาจากเมนู/รีวิวลงใน Google Sheet"
     });
   }
 
@@ -218,23 +218,23 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
       flags.push({
         restaurantName: item.name,
         area: item.area,
-        type: "ราคาจำลองกลุ่มเมนูหรูผันผวนสูง (High-Budget Price Estimation Risk)",
+        type: "ราคาโดยประมาณในหมวดพรีเมียม",
         severity: "medium",
         flagCode: "FLG-COST-01",
         metric: `Estimated: ~${item.price}฿, Cat: ${item.category}`,
-        reason: `งบต่อหัวผันผวนขอบเขตกว้างพิเศษ: อาหารกลุ่มเด่นพรีเมียมหมูพาย ${item.category} ใช้ระบบประเมินจำลองไว้ที่ประมาณ ~${item.price}฿ ทว่าลักษณะกลุ่มนี้มักมีราคาขั้นบันไดและค่าบริการเสริม (Service Charges/VAT/Beverage margins) ปะปนมาสูงปรี๊ดหน้างานจริง`,
-        action: "สลักข้อความแจ้งคำพูดกำกับ 'เรตราคานี้อาจปะปนขึ้นผันผวนสูงตามเซ็ตระดับเนื้อที่ลูกค้ากดสั่ง' ในส่วนตาราง"
+        reason: `ราคา ~${item.price}฿ เป็นค่าประมาณสำหรับหมวด ${item.category} ซึ่งมักมีหลายเซ็ตและอาจมีค่าบริการเพิ่ม`,
+        action: "ติดป้ายว่าเป็นราคาประมาณ และแนะนำให้ตรวจเมนูจริงก่อนจอง"
       });
     } else {
       flags.push({
         restaurantName: item.name,
         area: item.area,
-        type: "ระดับราคาเป็นการประมาณการจากแบบจำลอง AI (AI Budget Approximation)",
+        type: "ราคาเป็นค่าประมาณ",
         severity: "low",
         flagCode: "FLG-COST-02",
         metric: `Estimated: ~${item.price}฿`,
-        reason: `ประมาณการตามดัชนีแผงทำเล: ข้อมูลใบเสร็จบิลอาหารตัวจริงขาดฟิลด์ในเซลล์พาส ระบบสุ่มวิจัย (Data Interpolation System) จึงป้อนเกรดราคากลาง ~${item.price}฿ โดยคำนวณจากค่าเฉลี่ยสถิติกลุ่มย่านหลัก และลักษณะร้านค้าทดสอบข้างเคียง`,
-        action: "ส่งเสริมให้ผู้ตรวจเยี่ยมหน้าเพจพกตั๋วบิลเช็คยอดอัปเดตลงตัวแปรดิบ Google Sheets เพื่อทดแทนที่แบบถาวร"
+        reason: `ราคา ~${item.price}฿ เป็นการประมาณจากข้อมูลใกล้เคียง เพราะยังไม่มีราคาจริงในชีต`,
+        action: "เมื่อเจอเมนูหรือบิลจริง ให้เติมราคาลง Google Sheet เพื่อแทนค่าประมาณ"
       });
     }
   }
@@ -244,12 +244,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: "ไม่ระบุ",
-      type: "ขาดการระบุพื้นที่เขตพิกัดย่านหลัก (Missing Geocentric Area Tag)",
+      type: "ยังไม่ระบุย่าน",
       severity: "medium",
       flagCode: "FLG-GEOM-01",
       metric: `Area: ไม่ระบุ`,
-      reason: `พิกัดตกสำรวจเชิงพื้นที่: เขตพื้นที่ตีกรอบภูมิภาค (Neighborhood Area) อยู่ในหมวดไม่ระบุ ส่งผลให้ฟิลเตอร์จัดย่านบนแถบ Dashboard มองไม่เห็นร้านค้า และตกโครงสร้างเมื่อกรองแผนภูมิมาร์เก็ตอินไซต์`,
-      action: "แยกแยะคีย์เวิร์ดที่อยู่ (Address Details) บนตารางร้าน หาจุดตัดเขตและปรับเปลี่ยนค่าจากว่างเปล่าให้เข้ากรอบเขตหลัก"
+      reason: "ร้านยังไม่มีย่านหลัก ทำให้ตัวกรองตามทำเลและสรุปภาพรวมย่านทำงานได้ไม่เต็มที่",
+      action: "ดูที่อยู่ร้านแล้วเติมย่านหลัก เช่น สยาม อารีย์ ทองหล่อ อโศก หรือพร้อมพงษ์"
     });
   }
 
@@ -258,23 +258,23 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ขาดพิกัดทางนำทาง Google Maps แสตนด์อะโลน (Missing Navigational Maps URL)",
+      type: "ไม่มีลิงก์ Google Maps",
       severity: "medium",
       flagCode: "FLG-LINK-02",
       metric: `Maps URL: ไม่มี`,
-      reason: `อัมพาตการเชื่อมโยงระบบวิจัย: ไม่มีลิงก์พิกัดนำทางระบุลงแถบแถวอาหาร ทำให้ผู้กดใช้งานมองไม่เห็นเส้นทางจราจลจริง ลานจอดรถ หรือเช็คดูรูปถ่ายล่าสุดผ่านดาวเทียมกูเกิลไม่ได้`,
-      action: "เร่งรีบนำยูอาร์แอลพิกัด Maps ที่ถูกต้องพร้อมหมุดจระเข้มาคัดลอกทับที่แทนเพื่อแก้ปัญหาเดธลิงก์ในการนำทาง"
+      reason: "ไม่มีลิงก์แผนที่ ทำให้ผู้ใช้เปิดนำทางหรือตรวจรูปสถานที่ล่าสุดไม่ได้",
+      action: "เติมลิงก์ Google Maps ที่ถูกต้องลงในชีต"
     });
   } else if (!item.map.includes("google.com/maps") && !item.map.includes("maps.google") && !item.map.includes("goo.gl") && !item.map.includes("maps.app.goo.gl")) {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "รูปแบบสะพานแผนที่ผิดข้อกำหนดพิกัดกูเกิล (Non-Google Maps Link Format)",
+      type: "ลิงก์แผนที่ไม่ใช่ Google Maps",
       severity: "medium",
       flagCode: "FLG-GEOM-03",
       metric: `Maps URL: ${item.map.slice(0, 30)}...`,
-      reason: `โครงสร้างจุดปักแผนที่ไม่ตรงรูปแบบ API สากล: ตัวลิงก์มีลักษณะเชื่อมต่อไปสื่อรีวิวอื่นๆ หรือเป็นเว็บไซต์หน้าหลักที่ยังไม่ปรากฏโค้ดแผนเส้นทางคมนาคม (Naviglational Coordinates System)`,
-      action: "แปลงค่าสะพาน URL ให้เข้าแบบฟอร์แมตหมุดปักสากลของกูเกิลเพื่อการเรียกใช้ Widget แผนที่อย่างราบรื่น"
+      reason: "ลิงก์ที่ใส่มาไม่ใช่รูปแบบ Google Maps โดยตรง อาจทำให้ปุ่มแผนที่พาผู้ใช้ไปผิดหน้า",
+      action: "เปลี่ยนเป็นลิงก์ Google Maps หรือ maps.app.goo.gl ของร้านนั้น"
     });
   }
 
@@ -283,12 +283,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ลิงก์เว็บไซต์อ้างอิงช่องทางติดต่อขาดหาย (Missing Contact link/Reference)",
+      type: "ไม่มีช่องทางติดต่อร้าน",
       severity: "low",
       flagCode: "FLG-LINK-01",
       metric: `Website: ไม่มี`,
-      reason: `ช่องทางสำรองที่นั่งห่างขาดพินารักษ์: ไร่ท่อเชื่อมต่อไปยังช่องติดต่อตรง เช่น สื่อแฟนเพจ เฟซบุ๊กหรือไลน์ทางการ ส่งผลให้ผู้ใช้มองหาช่องทางทำการจองล่วงหน้าหรือศึกษาเมนูก่อนเดินเดินทางลำบาก`,
-      action: "ตรวจสอบพอร์ทัลร้านบนเครื่องสืบค้น และนำเศษช่องทางอารักขาล่าสุดมาแมปประกอบเซลล์ติดต่อ"
+      reason: "ยังไม่มีลิงก์เว็บไซต์ เพจ หรือช่องทางติดต่อ ทำให้ผู้ใช้จองโต๊ะหรือดูเมนูก่อนไปได้ยาก",
+      action: "ค้นหาเพจหรือเว็บไซต์ทางการของร้าน แล้วเติมลิงก์ลงในชีต"
     });
   }
 
@@ -297,12 +297,12 @@ export function getHumanReviewFlags(item: Restaurant): HumanReviewFlag[] {
     flags.push({
       restaurantName: item.name,
       area: item.area,
-      type: "ใช้ภาพอาหารสต็อกสตูดิโอระบบจำลองชั่วคราว (Generic Stock Visual Tag)",
+      type: "ยังใช้ภาพตัวอย่าง",
       severity: "low",
       flagCode: "FLG-INFO-04",
       metric: `Stock Image placeholder`,
-      reason: `ขาดองค์ประกอบภาพพิสูจน์รสจริงหน้าเตา: ระบบจำลองภาพสต็อกธรรมชาติ picsum.photos เนื่องจากชีตข้อมูลละเลยการแนบลิงก์รูปถ่ายพอร์ทัลรูปจริงของจานอาหาร`,
-      action: "ดาวน์โหลดรูปเมนูเด่นของร้านค้าจากรีวิว Google Maps อัปขึ้นเซิร์ฟเวอร์ และนำลิงก์ปลายทางตรงมาป้อนแทนที่สต็อกปลอม"
+      reason: "ยังไม่มีรูปจริงของร้านหรือเมนู จึงใช้ภาพตัวอย่างแทน",
+      action: "เพิ่มรูปจริงจากร้านหรือ Google Maps เพื่อให้ผู้ใช้ตัดสินใจได้ดีขึ้น"
     });
   }
 
@@ -331,14 +331,14 @@ export function computeConfidence(item: Restaurant) {
 
   const confidence = clamp(Math.round(reviewsScore + ratingScore + completeness), 10, 100);
   const reasons: string[] = [];
-  if (reviews >= 500) reasons.push(`รีวิวสะสมสูง (${reviews} รีวิว) -> ข้อมูลมีความเสถียรเชิงสถิติชั้นยอด ปราศจากค่าสุ่มเบี่ยงเบน`);
-  else if (reviews >= 150) reasons.push(`รีวิวระดับกลาง (${reviews} รีวิว) -> ความน่าเชื่อถือสถิติคงตัวสว่างสดใส`);
-  else reasons.push(`รีวิวน้อยเข้าขั้นจำกัด (${reviews} รีวิว) -> ความเสี่ยงเชิงความไม่รอบคอบของคะแนนคละสายสูง`);
-  if (item.isEstimatedPrice) reasons.push(`ระดับราคาเป็นมูลฐาน AI ประมาณการเนื่องจากไม่ระบุบิลหน้าร้าน -> ความมั่นใจเรื่องงบประมาณลดลง`);
-  if (!hasArea) reasons.push(`พิกัดย่านยังคงค้างไม่ระบุ -> ขัดข้องในการแมปเพื่อความเหมาะสมตามขอบเขตพื้นที่ตั้งยอด`);
-  if (!hasCategory) reasons.push(`ประเภทไม่ส่องสว่าง -> หมวดหมู่อาหารคลุมเครือขัดขวางสมการการกรองเชิงลึก`);
+  if (reviews >= 500) reasons.push(`รีวิวสะสมสูง (${reviews} รีวิว) -> ข้อมูลค่อนข้างน่าเชื่อถือ`);
+  else if (reviews >= 150) reasons.push(`รีวิวระดับกลาง (${reviews} รีวิว) -> ใช้ประกอบการตัดสินใจได้พอสมควร`);
+  else reasons.push(`รีวิวยังน้อย (${reviews} รีวิว) -> คะแนนอาจแกว่งได้ ควรอ่านรีวิวจริงประกอบ`);
+  if (item.isEstimatedPrice) reasons.push(`ราคาเป็นค่าประมาณ -> ความแม่นยำเรื่องงบประมาณลดลง`);
+  if (!hasArea) reasons.push(`ยังไม่ระบุย่าน -> กรองตามทำเลได้ไม่แม่น`);
+  if (!hasCategory) reasons.push(`ยังไม่ระบุประเภทอาหาร -> กรองตามหมวดได้ไม่แม่น`);
   if (!hasMap) reasons.push(`ขาดพิกัด Google Maps -> ยากต่อการตรวจสอบว่าปัจจุบันยังเปิดดำเนินการอยู่หรือไม่`);
-  if (!hasSource) reasons.push(`ขาดพอร์ทัลลิงก์ติดต่อ -> ไม่ระบุเพจส่งอ้างอิงตรวจสอบย้ำเพื่อยืนยันสถานะโปรโมโมชั่นล่าสุด`);
+  if (!hasSource) reasons.push(`ขาดช่องทางติดต่อ -> ตรวจเมนูหรือการจองล่วงหน้าได้ยาก`);
 
   return { confidence, reasons };
 }
@@ -423,12 +423,12 @@ export function computeOperationalRisk(item: Restaurant) {
 
 export function scenarioLabel(s: string): string {
   const map: { [key: string]: string } = {
-    default: 'สมดุลทั่วไป',
-    safe: '🛡️ เมนูชัวร์ (รีวิวเยอะ)',
-    cheap: '💰 ประหยัดงบประมูลเลอ',
-    fast: '⚡ รีบด่วน (เสิร์ฟทันดัด)',
-    work: '💼 คุยธุรกิจหรู (คุยงาน)',
-    large: '👥 สระความสุขทีมใหญ่ 8-12 คน',
+    default: 'สมดุล',
+    safe: '🛡️ รีวิวเยอะ เลือกง่าย',
+    cheap: '💰 ประหยัดงบ',
+    fast: '⚡ กินไว',
+    work: '💼 เหมาะคุยงาน',
+    large: '👥 กลุ่มใหญ่ 8-12 คน',
   };
   return map[s] || s;
 }
