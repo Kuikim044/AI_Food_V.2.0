@@ -870,59 +870,73 @@ export default function App() {
 
     setIsCleaning(true);
     setIsLoading(true);
-    setLoadingProgress(20);
-    setLoadingText("AI Gemini กำลังประมวลผลและจัดระเบียบข้อมูล... (ขั้นตอนนี้อาจใช้เวลา 10-20 วินาที)");
+    setLoadingProgress(10);
+    setLoadingText(`AI Gemini กำลังเตรียมข้อมูล ${dataToClean.length} รายการ...`);
 
     try {
-      console.log("Starting AI Cleaning with model:", geminiModel);
-      // Initialize Gemini API
       const genAI = new GoogleGenerativeAI(geminiApiKey);
       const model = genAI.getGenerativeModel({ model: geminiModel });
 
-      // Prepare data summary for AI to save tokens and avoid context limits
-      const simplifiedData = dataToClean.map(item => ({
-        name: item['title'] || item['Name'] || item['ชื่อร้าน'] || '',
-        cat: item['categoryName'] || item['ประเภท'] || '',
-        price: item['priceRange'] || item['price'] || '',
-        area: item['neighborhood'] || item['ย่าน'] || '',
-        addr: item['address'] || item['ที่อยู่'] || '',
-        rating: item['totalScore'] || item['rating'] || '',
-        revs: item['reviewsCount'] || item['reviews'] || '',
-        url: item['url'] || item['mapUrl'] || ''
-      }));
+      // Batching Configuration
+      const BATCH_SIZE = 50;
+      const allCleanedData: any[] = [];
+      const totalItems = dataToClean.length;
+      const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
 
-      const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
-      Standardize categories (e.g., 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'). 
-      Extract price per person as a single number (integer). 
-      Format result as a JSON array of objects with these Thai keys: 
-      "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
-      Return ONLY the JSON array.
-      IMPORTANT: Process ALL ${simplifiedData.length} entries provided.
-      
-      DATA: ${JSON.stringify(simplifiedData)}`;
+      for (let i = 0; i < totalBatches; i++) {
+        const start = i * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, totalItems);
+        const batchData = dataToClean.slice(start, end);
 
-      console.log("Sending prompt to Gemini...");
-      const result = await model.generateContent(prompt);
-      console.log("Gemini response received:", result);
-      const response = await result.response;
-      const text = response.text();
-      console.log("Response text:", text.slice(0, 100) + "...");
-      
-      // Clean up markdown code blocks if AI returns them
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error("AI did not return a valid JSON array");
-      
-      const cleanedData = JSON.parse(jsonMatch[0]);
-      
-      setLoadingProgress(70);
-      setLoadingText("กำลังส่งข้อมูลที่คลีนแล้วไปยัง Google Sheets...");
+        setLoadingProgress(10 + Math.round((i / totalBatches) * 70));
+        setLoadingText(`AI Gemini กำลังประมวลผล Batch ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
+
+        const simplifiedBatch = batchData.map(item => ({
+          name: item['title'] || item['Name'] || item['ชื่อร้าน'] || '',
+          cat: item['categoryName'] || item['ประเภท'] || '',
+          price: item['priceRange'] || item['price'] || '',
+          area: item['neighborhood'] || item['ย่าน'] || '',
+          addr: item['address'] || item['ที่อยู่'] || '',
+          rating: item['totalScore'] || item['rating'] || '',
+          revs: item['reviewsCount'] || item['reviews'] || '',
+          url: item['url'] || item['mapUrl'] || ''
+        }));
+
+        const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
+        Standardize categories (e.g., 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'). 
+        Extract price per person as a single number (integer). 
+        Format result as a JSON array of objects with these Thai keys: 
+        "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
+        Return ONLY the JSON array.
+        
+        DATA: ${JSON.stringify(simplifiedBatch)}`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const cleanedBatch = JSON.parse(jsonMatch[0]);
+          allCleanedData.push(...cleanedBatch);
+        } else {
+          console.warn(`Batch ${i + 1} failed to return valid JSON. Skipping.`);
+        }
+      }
+
+      if (allCleanedData.length === 0) {
+        throw new Error("AI ไม่สามารถประมวลผลข้อมูลชุดนี้ได้เลย");
+      }
+
+      setLoadingProgress(85);
+      setLoadingText(`กำลังส่งข้อมูลที่คลีนแล้ว ${allCleanedData.length} รายการไปยัง Google Sheets...`);
 
       // POST to Google Apps Script
-      const syncRes = await fetch(googleScriptUrl, {
+      await fetch(googleScriptUrl, {
         method: "POST",
-        mode: "no-cors", // Required for Google Apps Script Web App redirects
+        mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cleanedData)
+        body: JSON.stringify(allCleanedData)
       });
 
       setLoadingProgress(100);
@@ -932,7 +946,7 @@ export default function App() {
       triggerWin95Alert(
         "AI Sync สำเร็จ",
         "✨ ทำความสะอาดและบันทึกข้อมูลเรียบร้อย",
-        `AI ประมวลผลร้านอาหาร ${cleanedData.length} รายการ และส่งไปที่แท็บ "Clear Data" ใน Google Sheet ของคุณแล้วครับ`,
+        `AI ประมวลผลร้านอาหารครบทั้ง ${allCleanedData.length} รายการ (จากทั้งหมด ${totalItems}) และส่งไปที่แท็บ "Clear Data" ใน Google Sheet แล้วครับ`,
         false
       );
 
@@ -943,7 +957,7 @@ export default function App() {
       triggerWin95Alert(
         "AI Cleaning ขัดข้อง",
         "ไม่สามารถประมวลผลข้อมูลด้วย AI ได้",
-        `รายละเอียด: ${e.message || e}\n\nโปรดตรวจสอบว่า API Key ถูกต้องและ Google Script ได้รับการ Deploy อย่างสมบูรณ์แล้ว`,
+        `รายละเอียด: ${e.message || e}`,
         true
       );
     }
