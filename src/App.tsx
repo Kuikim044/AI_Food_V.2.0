@@ -748,7 +748,7 @@ export default function App() {
 
               // Auto Sync Trigger
               if (autoSync) {
-                setTimeout(() => cleanDataWithAI(latestData), 2000);
+                setTimeout(() => cleanDataWithAI(latestData, true), 2000);
               }
             }, 10000);
             return;
@@ -846,7 +846,11 @@ export default function App() {
     }
   };
 
-  const cleanDataWithAI = async (dataToClean: any[] = rawData) => {
+  const cleanDataWithAI = async (dataToClean: any[] = rawData, skipConfirm: boolean = false) => {
+    if (!skipConfirm && !confirm(`✨ คุณต้องการเริ่มกระบวนการ AI Cleaning & Sync ใช่หรือไม่?\n\nระบบจะใช้โมเดล ${geminiModel} ในการประมวลผลและจัดระเบียบข้อมูล ซึ่งอาจใช้เวลาประมาณ 15-30 วินาที ขึ้นอยู่กับปริมาณข้อมูลครับ`)) {
+      return;
+    }
+
     if (!geminiApiKey) {
       triggerWin95Alert("ขาดการตั้งค่า API", "⚠️ ไม่พบ Gemini API Key", "กรุณาตั้งค่า API Key ในเมนู Settings ก่อนเริ่มกระบวนการ AI Cleaning ครับ", true);
       setShowSettings(true);
@@ -885,7 +889,7 @@ export default function App() {
         rating: item['totalScore'] || item['rating'] || '',
         revs: item['reviewsCount'] || item['reviews'] || '',
         url: item['url'] || item['mapUrl'] || ''
-      })).slice(0, 100);
+      }));
 
       const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
       Standardize categories (e.g., 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'). 
@@ -893,6 +897,7 @@ export default function App() {
       Format result as a JSON array of objects with these Thai keys: 
       "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
       Return ONLY the JSON array.
+      IMPORTANT: Process ALL ${simplifiedData.length} entries provided.
       
       DATA: ${JSON.stringify(simplifiedData)}`;
 
@@ -1323,7 +1328,7 @@ export default function App() {
     <div className="p-2 md:p-4 min-h-screen">
       {/* --- RETRO PROGRESS LOADER OVERLAY --- */}
       {isLoading && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-70">
           <div className="win95-window p-4 w-72 md:w-96 select-none animate-fade-in">
             <div className="win95-title-bar mb-4">
               <span>AI System Processing Control 2.0</span>
@@ -1354,7 +1359,7 @@ export default function App() {
 
       {/* --- WINDOWS 95 MICROSOFT ALERT MODAL --- */}
       {alertState.show && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
           <div className="win95-window w-80 md:w-110 p-1 max-w-[95vw] win95-shake relative">
             <div className={`win95-title-bar ${alertState.isError ? "bg-red-700" : "bg-blue-800"} text-white font-bold p-1 text-xs`}>
               <span>{alertState.title}</span>
