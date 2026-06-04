@@ -846,7 +846,7 @@ export default function App() {
     }
   };
 
-  const cleanDataWithAI = async (dataToClean: any[] = rawData, skipConfirm: boolean = false) => {
+  const cleanDataWithAI = async (dataToClean: any[] = processedData, skipConfirm: boolean = false) => {
     if (!skipConfirm && !confirm(`✨ คุณต้องการเริ่มกระบวนการ AI Cleaning & Sync ใช่หรือไม่?\n\nระบบจะใช้โมเดล ${geminiModel} ในการประมวลผลและจัดระเบียบข้อมูล ซึ่งอาจใช้เวลาประมาณ 15-30 วินาที ขึ้นอยู่กับปริมาณข้อมูลครับ`)) {
       return;
     }
