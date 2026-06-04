@@ -29,8 +29,10 @@ import {
   Sparkles,
   ShieldCheck,
   X,
-  Plus
+  Plus,
+  Settings
 } from "lucide-react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Restaurant, HumanReviewFlag, ChatMessage } from "./types";
 import {
   normalizeCategory,
@@ -169,6 +171,13 @@ export default function App() {
   ]);
   const [chatInput, setChatInput] = useState<string>("");
   const [isChatOpen, setIsChatOpen] = useState<boolean>(true);
+
+  // AI Cleaning & Sync Settings
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(localStorage.getItem("ai_food_gemini_api_key") || "");
+  const [googleScriptUrl, setGoogleScriptUrl] = useState<string>(localStorage.getItem("ai_food_google_script_url") || "https://script.google.com/macros/s/AKfycby9kvXskLoYF9EquSu_uerQ0tnk61c9-9jtdFEfh1HG1gF-u2aTDf8IYRIwmg5Y6boXQQ/exec");
+  const [autoSync, setAutoSync] = useState<boolean>(localStorage.getItem("ai_food_auto_sync") === "true");
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [isCleaning, setIsCleaning] = useState<boolean>(false);
 
   // Poll Interval Ref to protect from memory leaks and multiple overlapping timers
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -713,10 +722,12 @@ export default function App() {
 
             // Cooldown delay for n8n to finish writing all rows
             setTimeout(async () => {
+              let latestData = currentFetchedData;
               try {
                 const finalResult = await fetchSheetDataPreferred(SHEET_NAME);
                 setRawData(finalResult.data);
                 setDataSource(finalResult.source);
+                latestData = finalResult.data;
               } catch (err) {
                 setRawData(currentFetchedData);
               }
@@ -730,9 +741,14 @@ export default function App() {
               triggerWin95Alert(
                 "อัปเดตข้อมูลสำเร็จ",
                 "✨ ดึงข้อมูลใหม่และคำนวณคะแนนเรียบร้อยแล้ว",
-                `ตอนนี้มีร้านอาหารในระบบ ${rawData.length} ร้าน และระบบได้ตรวจข้อมูลที่ควรทบทวนใหม่แล้วครับ`,
+                `ตอนนี้มีร้านอาหารในระบบ ${latestData.length} ร้าน และระบบได้ตรวจข้อมูลที่ควรทบทวนใหม่แล้วครับ`,
                 false
               );
+
+              // Auto Sync Trigger
+              if (autoSync) {
+                setTimeout(() => cleanDataWithAI(latestData), 2000);
+              }
             }, 10000);
             return;
           }
@@ -781,6 +797,112 @@ export default function App() {
       isError,
       details
     });
+  };
+
+  // --- AI DATA CLEANING & SYNC ---
+  const saveSettings = (apiKey: string, scriptUrl: string, auto: boolean) => {
+    setGeminiApiKey(apiKey);
+    setGoogleScriptUrl(scriptUrl);
+    setAutoSync(auto);
+    localStorage.setItem("ai_food_gemini_api_key", apiKey);
+    localStorage.setItem("ai_food_google_script_url", scriptUrl);
+    localStorage.setItem("ai_food_auto_sync", auto.toString());
+    setShowSettings(false);
+    triggerWin95Alert("บันทึกการตั้งค่า", "✅ บันทึกข้อมูลการตั้งค่าเรียบร้อยแล้ว", "ระบบจะใช้ข้อมูลนี้ในการ Clean ข้อมูลครั้งถัดไปครับ", false);
+  };
+
+  const cleanDataWithAI = async (dataToClean: any[] = rawData) => {
+    if (!geminiApiKey) {
+      triggerWin95Alert("ขาดการตั้งค่า API", "⚠️ ไม่พบ Gemini API Key", "กรุณาตั้งค่า API Key ในเมนู Settings ก่อนเริ่มกระบวนการ AI Cleaning ครับ", true);
+      setShowSettings(true);
+      return;
+    }
+
+    if (!googleScriptUrl) {
+      triggerWin95Alert("ขาดการตั้งค่า Script", "⚠️ ไม่พบ Google Script URL", "กรุณาตั้งค่า Web App URL ในเมนู Settings เพื่อใช้ในการ Sync ข้อมูลกลับไปยัง Google Sheets ครับ", true);
+      setShowSettings(true);
+      return;
+    }
+
+    if (!dataToClean || dataToClean.length === 0) {
+      triggerWin95Alert("ไม่มีข้อมูล", "❌ ไม่พบข้อมูลสำหรับประมวลผล", "กรุณาดึงข้อมูลจากตารางหลักก่อนเริ่ม AI Cleaning ครับ", true);
+      return;
+    }
+
+    setIsCleaning(true);
+    setIsLoading(true);
+    setLoadingProgress(20);
+    setLoadingText("AI Gemini กำลังประมวลผลและจัดระเบียบข้อมูล... (ขั้นตอนนี้อาจใช้เวลา 10-20 วินาที)");
+
+    try {
+      // Initialize Gemini API
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      // Prepare data summary for AI to save tokens and avoid context limits
+      const simplifiedData = dataToClean.map(item => ({
+        name: item['title'] || item['Name'] || item['ชื่อร้าน'] || '',
+        cat: item['categoryName'] || item['ประเภท'] || '',
+        price: item['priceRange'] || item['price'] || '',
+        area: item['neighborhood'] || item['ย่าน'] || '',
+        addr: item['address'] || item['ที่อยู่'] || '',
+        rating: item['totalScore'] || item['rating'] || '',
+        revs: item['reviewsCount'] || item['reviews'] || '',
+        url: item['url'] || item['mapUrl'] || ''
+      })).slice(0, 100); // Limit to top 100 for stability
+
+      const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
+      Standardize categories (e.g., 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'). 
+      Extract price per person as a single number (integer). 
+      Format result as a JSON array of objects with these Thai keys: 
+      "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
+      Return ONLY the JSON array.
+      
+      DATA: ${JSON.stringify(simplifiedData)}`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      // Clean up markdown code blocks if AI returns them
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("AI did not return a valid JSON array");
+      
+      const cleanedData = JSON.parse(jsonMatch[0]);
+      
+      setLoadingProgress(70);
+      setLoadingText("กำลังส่งข้อมูลที่คลีนแล้วไปยัง Google Sheets...");
+
+      // POST to Google Apps Script
+      const syncRes = await fetch(googleScriptUrl, {
+        method: "POST",
+        mode: "no-cors", // Required for Google Apps Script Web App redirects
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cleanedData)
+      });
+
+      setLoadingProgress(100);
+      setIsCleaning(false);
+      setIsLoading(false);
+
+      triggerWin95Alert(
+        "AI Sync สำเร็จ",
+        "✨ ทำความสะอาดและบันทึกข้อมูลเรียบร้อย",
+        `AI ประมวลผลร้านอาหาร ${cleanedData.length} รายการ และส่งไปที่แท็บ "Clear Data" ใน Google Sheet ของคุณแล้วครับ`,
+        false
+      );
+
+    } catch (e: any) {
+      console.error("AI Cleaning failed:", e);
+      setIsCleaning(false);
+      setIsLoading(false);
+      triggerWin95Alert(
+        "AI Cleaning ขัดข้อง",
+        "ไม่สามารถประมวลผลข้อมูลด้วย AI ได้",
+        `รายละเอียด: ${e.message || e}\n\nโปรดตรวจสอบว่า API Key ถูกต้องและ Google Script ได้รับการ Deploy อย่างสมบูรณ์แล้ว`,
+        true
+      );
+    }
   };
 
   const closeWin95Alert = () => {
@@ -1236,6 +1358,84 @@ export default function App() {
         </div>
       )}
 
+      {/* --- WINDOWS 95 SETTINGS MODAL --- */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="win95-window w-96 p-1 max-w-[95vw]">
+            <div className="win95-title-bar bg-blue-800 text-white font-bold p-1 text-xs flex justify-between items-center">
+              <span>⚙️ AI Cleaning Settings</span>
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="control-btn"
+              >
+                X
+              </button>
+            </div>
+            <div className="p-4 bg-[#c0c0c0] space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-black flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-700" />
+                  <span>Google Gemini API Key:</span>
+                </label>
+                <input 
+                  type="password"
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  placeholder="Paste your API Key here..."
+                  className="w-full win95-inset bg-white p-1.5 text-xs outline-none focus:border-blue-800"
+                />
+                <p className="text-[9px] text-gray-700">Get your key from <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-blue-700 underline">Google AI Studio</a></p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-black flex items-center gap-1">
+                  <Database className="w-3 h-3 text-green-700" />
+                  <span>Google Apps Script URL:</span>
+                </label>
+                <input 
+                  type="text"
+                  value={googleScriptUrl}
+                  onChange={(e) => setGoogleScriptUrl(e.target.value)}
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  className="w-full win95-inset bg-white p-1.5 text-xs outline-none focus:border-blue-800"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 select-none">
+                <input 
+                  type="checkbox"
+                  id="autoSyncCheck"
+                  checked={autoSync}
+                  onChange={(e) => setAutoSync(e.target.checked)}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="autoSyncCheck" className="text-[11px] font-bold text-black cursor-pointer">
+                  เปิดระบบ AI Sync อัตโนมัติหลังจาก Scrape เสร็จ
+                </label>
+              </div>
+
+              <div className="p-2 bg-yellow-100 border border-yellow-500 text-[10px] text-gray-800 leading-tight">
+                💡 ข้อมูล API Key จะถูกเก็บไว้ในเครื่องของคุณ (LocalStorage) เพื่อความปลอดภัย และจะไม่ถูกส่งไปยังเซิร์ฟเวอร์อื่นๆ ยกเว้น Google Gemini API
+              </div>
+            </div>
+            <div className="p-2 flex justify-end gap-2 bg-[#c0c0c0] border-t border-gray-400 pt-3">
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="win95-button font-bold text-xs min-w-[70px]"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => saveSettings(geminiApiKey, googleScriptUrl, autoSync)}
+                className="win95-button bg-blue-700 text-white font-bold text-xs min-w-[80px]"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- WINDOWS 95 RETRO RESTAURANT DETAILS MODAL --- */}
       {selectedRestaurant && (() => {
         const customScenarioScoreValue = selectedRestaurant.scenario_score || selectedRestaurant.base_score;
@@ -1441,23 +1641,53 @@ export default function App() {
             <p className="text-xs font-bold text-white">วันที่จัดทำ: 28/05/2026</p>
 
             {/* Scrape trigger button with disabled control locks and styling states */}
-            <button
-              onClick={triggerScrape}
-              disabled={isScraping || isLoading}
-              className={`win95-button bg-yellow-400 text-black font-bold text-xs mt-1 w-full md:w-auto flex items-center justify-center gap-1 leading-none ${isScraping ? "opacity-60 cursor-not-allowed" : "hover:scale-102"}`}
-            >
-              {isScraping ? (
-                <>
-                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-600 animate-ping mr-1" />
-                  <span>กำลังดึงข้อมูลผ่าน n8n...</span>
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="w-3.5 h-3.5 animate-spin-slow" />
-                  <span>🔄 ดึงข้อมูลร้านใหม่</span>
-                </>
-              )}
-            </button>
+            <div className="flex flex-wrap gap-2 mt-1 w-full md:w-auto justify-end">
+              <button
+                onClick={() => setShowSettings(true)}
+                className="win95-button bg-gray-200 text-black font-bold text-xs flex items-center justify-center gap-1 leading-none"
+                title="ตั้งค่า API และ Webhook"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>⚙️ ตั้งค่า</span>
+              </button>
+
+              <button
+                onClick={() => cleanDataWithAI()}
+                disabled={isCleaning || isLoading || isScraping}
+                className={`win95-button bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1 leading-none ${isCleaning ? "opacity-60" : "hover:bg-purple-800"}`}
+                title="ทำความสะอาดข้อมูลด้วย AI และส่งไปยัง Google Sheet"
+              >
+                {isCleaning ? (
+                  <>
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-white animate-ping mr-1" />
+                    <span>AI กำลังประมวลผล...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>✨ AI Clean & Sync</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={triggerScrape}
+                disabled={isScraping || isLoading || isCleaning}
+                className={`win95-button bg-yellow-400 text-black font-bold text-xs flex items-center justify-center gap-1 leading-none ${isScraping ? "opacity-60 cursor-not-allowed" : "hover:scale-102"}`}
+              >
+                {isScraping ? (
+                  <>
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-600 animate-ping mr-1" />
+                    <span>กำลังดึงข้อมูลผ่าน n8n...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5 animate-spin-slow" />
+                    <span>🔄 ดึงข้อมูลร้านใหม่</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </header>
 
