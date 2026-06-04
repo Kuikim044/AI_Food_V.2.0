@@ -32,7 +32,7 @@ import {
   Plus,
   Settings
 } from "lucide-react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import { Restaurant, HumanReviewFlag, ChatMessage } from "./types";
 import {
   normalizeCategory,
@@ -846,8 +846,8 @@ export default function App() {
     }
   };
 
-  const cleanDataWithAI = async (dataToClean: any[] = rawData, skipConfirm: boolean = false) => {
-    if (!skipConfirm && !confirm(`✨ คุณต้องการเริ่มกระบวนการ AI Cleaning & Sync ใช่หรือไม่?\n\nระบบจะใช้โมเดล ${geminiModel} ในการประมวลผลข้อมูลดิบทั้งหมด ซึ่งอาจใช้เวลาประมาณ 30-60 วินาทีครับ`)) {
+  const cleanDataWithAI = async (dataToClean: any[] = processedData, skipConfirm: boolean = false) => {
+    if (!skipConfirm && !confirm(`✨ คุณต้องการเริ่มกระบวนการ AI Cleaning & Sync ใช่หรือไม่?\n\nระบบจะใช้โมเดล ${geminiModel} ในการประมวลผลร้านอาหาร ${dataToClean.length} รายการ และบันทึกลง Google Sheets ครับ`)) {
       return;
     }
 
@@ -871,108 +871,81 @@ export default function App() {
     setIsCleaning(true);
     setIsLoading(true);
     setLoadingProgress(10);
-    setLoadingText(`AI Gemini กำลังเตรียมข้อมูลดิบ ${dataToClean.length} รายการ...`);
+    setLoadingText(`AI Gemini กำลังเตรียมข้อมูล ${dataToClean.length} รายการ...`);
 
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
-      const model = genAI.getGenerativeModel({ model: geminiModel });
+      const model = genAI.getGenerativeModel({ 
+        model: geminiModel,
+        systemInstruction: "You are a Thai restaurant data expert. Task: Clean and standardize data. Format: JSON array of objects with keys: 'ชื่อร้าน', 'ประเภท', 'ราคาต่อหัว', 'ย่าน', 'ที่อยู่', 'คะแนน', 'จำนวนรีวิว', 'ลิงก์แผนที่'.",
+        generationConfig: { responseMimeType: "application/json" },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ]
+      }, { apiVersion: "v1beta" });
 
-      // Batching Configuration for Raw Data
       const BATCH_SIZE = 50; 
       const allCleanedData: any[] = [];
       const totalItems = dataToClean.length;
       const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
-      
-      // Get keys for debugging
-      const detectedKeys = dataToClean[0] ? Object.keys(dataToClean[0]).slice(0, 10).join(", ") : "None";
-      console.log(`AI Cleaning: Processing ${totalItems} items. Detected Keys: ${detectedKeys}`);
+      let failedBatches = 0;
 
       for (let i = 0; i < totalBatches; i++) {
         const start = i * BATCH_SIZE;
         const end = Math.min(start + BATCH_SIZE, totalItems);
         const batchData = dataToClean.slice(start, end);
 
-        setLoadingProgress(10 + Math.round((i / totalBatches) * 75));
-        setLoadingText(`AI Gemini กำลังประมวลผลกลุ่มที่ ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
+        setLoadingProgress(10 + Math.round((i / totalBatches) * 80));
+        setLoadingText(`AI Gemini กำลังประมวลผลชุดที่ ${i + 1}/${totalBatches}...`);
 
-        const simplifiedBatch = batchData.map(item => {
-          const getVal = (keys: string[], colIdx?: number) => {
-            for (const key of keys) {
-              if (item[key] !== undefined && item[key] !== null && item[key] !== "") return item[key];
-            }
-            // Fallback to col_N if index provided
-            if (colIdx !== undefined) {
-              const fallbackKey = `col_${colIdx}`;
-              if (item[fallbackKey]) return item[fallbackKey];
-            }
-            return "";
-          };
+        const simplifiedBatch = batchData.map(item => ({
+          "name": item.name || '',
+          "cat": item.category || '',
+          "price": item.price || 0,
+          "area": item.area || '',
+          "addr": item.address || '',
+          "score": item.rating || 0,
+          "reviews": item.reviews || 0,
+          "map": item.map || ''
+        }));
 
-          return {
-            "title": getVal(['title', 'Name', 'ชื่อร้าน', 'ชื่อ']),
-            "category": getVal(['categoryName', 'ประเภท', 'Category', 'category']),
-            "price": getVal(['price', 'priceRange', 'ราคา', 'Price']),
-            "neighborhood": getVal(['neighborhood', 'ย่าน', 'Area', 'area']),
-            "address": getVal(['address', 'ที่อยู่', 'Address']),
-            "score": getVal(['totalScore', 'rating', 'คะแนน', 'Score']),
-            "reviews": getVal(['reviewsCount', 'reviews', 'จำนวนรีวิว', 'Reviews']),
-            "mapUrl": getVal(['url', 'map', 'mapUrl', 'Google Maps URL'])
-          };
-        });
-
-        const prompt = `Clean this Thai restaurant list and return a JSON array.
-        Standardize categories, extract price as number, and remove duplicates.
-        Keys: "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
-        Return ONLY the JSON array.
-        
-        DATA: ${JSON.stringify(simplifiedBatch)}`;
+        const prompt = `Clean this batch: ${JSON.stringify(simplifiedBatch)}`;
 
         try {
           const result = await model.generateContent(prompt);
-          const response = await result.response;
-          const text = response.text();
+          const text = result.response.text();
+          const parsed = JSON.parse(text);
+          const batchResults = Array.isArray(parsed) ? parsed : (parsed.restaurants || parsed.data || []);
           
-          let cleanedBatch = [];
-          const jsonMatch = text.match(/\[[\s\S]*\]/);
-          
-          if (jsonMatch) {
-            cleanedBatch = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(batchResults) && batchResults.length > 0) {
+            allCleanedData.push(...batchResults);
           } else {
-            try { cleanedBatch = JSON.parse(text); } catch (e) {}
+            failedBatches++;
           }
-          
-          if (Array.isArray(cleanedBatch) && cleanedBatch.length > 0) {
-            allCleanedData.push(...cleanedBatch);
-          }
-        } catch (err: any) {
-          console.error(`Batch ${i + 1} error:`, err);
+        } catch (err) {
+          console.error(`Batch ${i + 1} failed:`, err);
+          failedBatches++;
         }
 
-        if (i < totalBatches - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
+        if (i < totalBatches - 1) await new Promise(r => setTimeout(r, 1200));
       }
 
       if (allCleanedData.length === 0) {
-        throw new Error(`AI ไม่พบข้อมูลที่ประมวลผลได้เลย\n\nหัวข้อที่ตรวจพบในชีต: [${detectedKeys}]\nโปรดตรวจสอบว่าหัวข้อในชีตถูกต้องตามรูปแบบมาตรฐานครับ`);
+        throw new Error(`AI ไม่สามารถประมวลผลข้อมูลได้ (ล้มเหลว ${failedBatches}/${totalBatches} กลุ่ม)`);
       }
 
-      // Final Deduplication at the app level to be safe
-      const uniqueFinal = new Map();
+      const finalUniqueMap = new Map();
       allCleanedData.forEach(item => {
-        const name = item["ชื่อร้าน"];
-        if (name && name !== "ไม่ระบุ") {
-          if (!uniqueFinal.has(name)) {
-            uniqueFinal.set(name, item);
-          }
-        }
+        if (item["ชื่อร้าน"]) finalUniqueMap.set(item["ชื่อร้าน"], item);
       });
-      const finalCleanedData = Array.from(uniqueFinal.values());
+      const finalCleanedData = Array.from(finalUniqueMap.values());
 
-      setLoadingProgress(90);
-      setLoadingText(`ส่งข้อมูลที่คลีนและคัดออกแล้ว ${finalCleanedData.length} ร้านไปยัง Google Sheets...`);
+      setLoadingProgress(95);
+      setLoadingText(`กำลังบันทึกข้อมูล ${finalCleanedData.length} รายการลง Google Sheets...`);
 
-      // POST to Google Apps Script
       await fetch(googleScriptUrl, {
         method: "POST",
         mode: "no-cors",
@@ -985,9 +958,9 @@ export default function App() {
       setIsLoading(false);
 
       triggerWin95Alert(
-        "AI Sync ข้อมูลดิบสำเร็จ",
-        "✨ คลีนและคัดแยกข้อมูล 1,000+ รายการเรียบร้อย",
-        `AI ประมวลผลและคัดร้านที่ซ้ำออก เหลือร้านที่สมบูรณ์ ${finalCleanedData.length} ร้าน บันทึกลงชีตเรียบร้อยครับ`,
+        "AI Sync สำเร็จ",
+        "✨ ทำความสะอาดและบันทึกข้อมูลเรียบร้อย",
+        `AI ประมวลผลร้านอาหาร ${finalCleanedData.length} รายการ และส่งไปที่แท็บ "Clear Data" ใน Google Sheet แล้วครับ`,
         false
       );
 
@@ -995,12 +968,7 @@ export default function App() {
       console.error("AI Cleaning failed:", e);
       setIsCleaning(false);
       setIsLoading(false);
-      triggerWin95Alert(
-        "AI Cleaning ขัดข้อง",
-        "ไม่สามารถประมวลผลข้อมูลดิบได้",
-        `รายละเอียด: ${e.message || e}`,
-        true
-      );
+      triggerWin95Alert("AI Cleaning ขัดข้อง", "ไม่สามารถประมวลผลข้อมูลได้", e.message || e, true);
     }
   };
 
