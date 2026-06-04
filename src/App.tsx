@@ -814,6 +814,38 @@ export default function App() {
     triggerWin95Alert("บันทึกการตั้งค่า", "✅ บันทึกข้อมูลการตั้งค่าเรียบร้อยแล้ว", "ระบบจะใช้ข้อมูลนี้ในการ Clean ข้อมูลครั้งถัดไปครับ", false);
   };
 
+  const testGeminiConnection = async () => {
+    if (!geminiApiKey) {
+      triggerWin95Alert("API Key Missing", "⚠️ กรุณาใส่ API Key ก่อนทดสอบ", "", true);
+      return;
+    }
+    
+    setIsLoading(true);
+    setLoadingText("กำลังทดสอบการเชื่อมต่อกับ Google AI...");
+    
+    try {
+      // Direct fetch to test the key and see available models
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        const modelNames = data.models ? data.models.map((m: any) => m.name.replace('models/', '')).join(', ') : "No models found";
+        triggerWin95Alert(
+          "เชื่อมต่อสำเร็จ!", 
+          "✅ API Key ของคุณใช้งานได้", 
+          `โมเดลที่รองรับในบัญชีของคุณ:\n${modelNames.slice(0, 300)}...`, 
+          false
+        );
+      } else {
+        throw new Error(data.error?.message || "Unknown API Error");
+      }
+    } catch (e: any) {
+      triggerWin95Alert("การเชื่อมต่อล้มเหลว", "❌ ตรวจพบข้อผิดพลาดจาก Google API", e.message, true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const cleanDataWithAI = async (dataToClean: any[] = rawData) => {
     if (!geminiApiKey) {
       triggerWin95Alert("ขาดการตั้งค่า API", "⚠️ ไม่พบ Gemini API Key", "กรุณาตั้งค่า API Key ในเมนู Settings ก่อนเริ่มกระบวนการ AI Cleaning ครับ", true);
@@ -838,6 +870,7 @@ export default function App() {
     setLoadingText("AI Gemini กำลังประมวลผลและจัดระเบียบข้อมูล... (ขั้นตอนนี้อาจใช้เวลา 10-20 วินาที)");
 
     try {
+      console.log("Starting AI Cleaning with model:", geminiModel);
       // Initialize Gemini API
       const genAI = new GoogleGenerativeAI(geminiApiKey);
       const model = genAI.getGenerativeModel({ model: geminiModel });
@@ -852,7 +885,7 @@ export default function App() {
         rating: item['totalScore'] || item['rating'] || '',
         revs: item['reviewsCount'] || item['reviews'] || '',
         url: item['url'] || item['mapUrl'] || ''
-      })).slice(0, 100); // Limit to top 100 for stability
+      })).slice(0, 100);
 
       const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
       Standardize categories (e.g., 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'). 
@@ -863,9 +896,12 @@ export default function App() {
       
       DATA: ${JSON.stringify(simplifiedData)}`;
 
+      console.log("Sending prompt to Gemini...");
       const result = await model.generateContent(prompt);
+      console.log("Gemini response received:", result);
       const response = await result.response;
       const text = response.text();
+      console.log("Response text:", text.slice(0, 100) + "...");
       
       // Clean up markdown code blocks if AI returns them
       const jsonMatch = text.match(/\[[\s\S]*\]/);
@@ -1380,13 +1416,21 @@ export default function App() {
                   <Sparkles className="w-3 h-3 text-amber-700" />
                   <span>Google Gemini API Key:</span>
                 </label>
-                <input 
-                  type="password"
-                  value={geminiApiKey}
-                  onChange={(e) => setGeminiApiKey(e.target.value)}
-                  placeholder="Paste your API Key here..."
-                  className="w-full win95-inset bg-white p-1.5 text-xs outline-none focus:border-blue-800"
-                />
+                <div className="flex gap-2">
+                  <input 
+                    type="password"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    placeholder="Paste your API Key here..."
+                    className="flex-1 win95-inset bg-white p-1.5 text-xs outline-none focus:border-blue-800"
+                  />
+                  <button 
+                    onClick={testGeminiConnection}
+                    className="win95-button text-[10px] px-2 font-bold whitespace-nowrap"
+                  >
+                    Test Key
+                  </button>
+                </div>
                 <p className="text-[9px] text-gray-700">Get your key from <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-blue-700 underline">Google AI Studio</a></p>
               </div>
 
