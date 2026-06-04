@@ -892,14 +892,14 @@ export default function App() {
         setLoadingText(`AI Gemini กำลังประมวลผล Batch ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
 
         const simplifiedBatch = batchData.map(item => ({
-          name: item['title'] || item['Name'] || item['ชื่อร้าน'] || '',
-          cat: item['categoryName'] || item['ประเภท'] || '',
-          price: item['priceRange'] || item['price'] || '',
-          area: item['neighborhood'] || item['ย่าน'] || '',
-          addr: item['address'] || item['ที่อยู่'] || '',
-          rating: item['totalScore'] || item['rating'] || '',
-          revs: item['reviewsCount'] || item['reviews'] || '',
-          url: item['url'] || item['mapUrl'] || ''
+          "ชื่อร้าน": item.name || '',
+          "ประเภท": item.category || '',
+          "ราคาต่อหัว": item.price || 0,
+          "ย่าน": item.area || '',
+          "ที่อยู่": item.address || '',
+          "คะแนน": item.rating || 0,
+          "จำนวนรีวิว": item.reviews || 0,
+          "ลิงก์แผนที่": item.map || ''
         }));
 
         const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
@@ -908,6 +908,7 @@ export default function App() {
         Format result as a JSON array of objects with these Thai keys: 
         "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
         Return ONLY the JSON array.
+        IMPORTANT: Preserve the "ชื่อร้าน" and "ลิงก์แผนที่" exactly as provided.
         
         DATA: ${JSON.stringify(simplifiedBatch)}`;
 
