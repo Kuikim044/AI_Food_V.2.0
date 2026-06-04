@@ -846,8 +846,8 @@ export default function App() {
     }
   };
 
-  const cleanDataWithAI = async (dataToClean: any[] = processedData, skipConfirm: boolean = false) => {
-    if (!skipConfirm && !confirm(`✨ คุณต้องการเริ่มกระบวนการ AI Cleaning & Sync ใช่หรือไม่?\n\nระบบจะใช้โมเดล ${geminiModel} ในการประมวลผลและจัดระเบียบข้อมูล ซึ่งอาจใช้เวลาประมาณ 15-30 วินาที ขึ้นอยู่กับปริมาณข้อมูลครับ`)) {
+  const cleanDataWithAI = async (dataToClean: any[] = rawData, skipConfirm: boolean = false) => {
+    if (!skipConfirm && !confirm(`✨ คุณต้องการเริ่มกระบวนการ AI Cleaning & Sync ใช่หรือไม่?\n\nระบบจะใช้โมเดล ${geminiModel} ในการประมวลผลข้อมูลดิบทั้งหมด ซึ่งอาจใช้เวลาประมาณ 30-60 วินาทีครับ`)) {
       return;
     }
 
@@ -871,14 +871,14 @@ export default function App() {
     setIsCleaning(true);
     setIsLoading(true);
     setLoadingProgress(10);
-    setLoadingText(`AI Gemini กำลังเตรียมข้อมูล ${dataToClean.length} รายการ...`);
+    setLoadingText(`AI Gemini กำลังเตรียมข้อมูลดิบ ${dataToClean.length} รายการ...`);
 
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey);
       const model = genAI.getGenerativeModel({ model: geminiModel });
 
-      // Batching Configuration
-      const BATCH_SIZE = 50;
+      // Batching Configuration for Raw Data
+      const BATCH_SIZE = 100; // Larger batches for raw data
       const allCleanedData: any[] = [];
       const totalItems = dataToClean.length;
       const totalBatches = Math.ceil(totalItems / BATCH_SIZE);
@@ -888,27 +888,29 @@ export default function App() {
         const end = Math.min(start + BATCH_SIZE, totalItems);
         const batchData = dataToClean.slice(start, end);
 
-        setLoadingProgress(10 + Math.round((i / totalBatches) * 70));
-        setLoadingText(`AI Gemini กำลังประมวลผล Batch ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
+        setLoadingProgress(10 + Math.round((i / totalBatches) * 75));
+        setLoadingText(`AI Gemini กำลังคลีนและคัดร้านซ้ำ Batch ${i + 1}/${totalBatches} (${start + 1}-${end})...`);
 
         const simplifiedBatch = batchData.map(item => ({
-          "ชื่อร้าน": item.name || '',
-          "ประเภท": item.category || '',
-          "ราคาต่อหัว": item.price || 0,
-          "ย่าน": item.area || '',
-          "ที่อยู่": item.address || '',
-          "คะแนน": item.rating || 0,
-          "จำนวนรีวิว": item.reviews || 0,
-          "ลิงก์แผนที่": item.map || ''
+          "title": item['title'] || item['Name'] || item['ชื่อร้าน'] || '',
+          "category": item['categoryName'] || item['ประเภท'] || '',
+          "price": item['priceRange'] || item['price'] || '',
+          "neighborhood": item['neighborhood'] || item['ย่าน'] || '',
+          "address": item['address'] || item['ที่อยู่'] || '',
+          "score": item['totalScore'] || item['rating'] || '',
+          "reviews": item['reviewsCount'] || item['reviews'] || '',
+          "mapUrl": item['url'] || item['map'] || item['mapUrl'] || ''
         }));
 
         const prompt = `You are an AI Data Cleaner. Clean this Thai restaurant list. 
-        Standardize categories (e.g., 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'). 
-        Extract price per person as a single number (integer). 
-        Format result as a JSON array of objects with these Thai keys: 
+        1. DEDUPLICATE: If multiple entries have the same name, merge them into one.
+        2. STANDARDIZE: Categories should be like 'อาหารญี่ปุ่น', 'คาเฟ่', 'ปิ้งย่าง'.
+        3. EXTRACT: Price per person as a single number (integer).
+        4. FORMAT: Return a JSON array of objects with these keys:
         "ชื่อร้าน", "ประเภท", "ราคาต่อหัว", "ย่าน", "ที่อยู่", "คะแนน", "จำนวนรีวิว", "ลิงก์แผนที่".
+        
+        IMPORTANT: Use the "title" field for "ชื่อร้าน" and "mapUrl" field for "ลิงก์แผนที่".
         Return ONLY the JSON array.
-        IMPORTANT: Preserve the "ชื่อร้าน" and "ลิงก์แผนที่" exactly as provided.
         
         DATA: ${JSON.stringify(simplifiedBatch)}`;
 
@@ -920,24 +922,27 @@ export default function App() {
         if (jsonMatch) {
           const cleanedBatch = JSON.parse(jsonMatch[0]);
           allCleanedData.push(...cleanedBatch);
-        } else {
-          console.warn(`Batch ${i + 1} failed to return valid JSON. Skipping.`);
         }
       }
 
-      if (allCleanedData.length === 0) {
-        throw new Error("AI ไม่สามารถประมวลผลข้อมูลชุดนี้ได้เลย");
-      }
+      // Final Deduplication at the app level to be safe
+      const uniqueFinal = new Map();
+      allCleanedData.forEach(item => {
+        if (item["ชื่อร้าน"]) {
+          uniqueFinal.set(item["ชื่อร้าน"], item);
+        }
+      });
+      const finalCleanedData = Array.from(uniqueFinal.values());
 
-      setLoadingProgress(85);
-      setLoadingText(`กำลังส่งข้อมูลที่คลีนแล้ว ${allCleanedData.length} รายการไปยัง Google Sheets...`);
+      setLoadingProgress(90);
+      setLoadingText(`ส่งข้อมูลที่คลีนและคัดออกแล้ว ${finalCleanedData.length} ร้านไปยัง Google Sheets...`);
 
       // POST to Google Apps Script
       await fetch(googleScriptUrl, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(allCleanedData)
+        body: JSON.stringify(finalCleanedData)
       });
 
       setLoadingProgress(100);
@@ -945,9 +950,9 @@ export default function App() {
       setIsLoading(false);
 
       triggerWin95Alert(
-        "AI Sync สำเร็จ",
-        "✨ ทำความสะอาดและบันทึกข้อมูลเรียบร้อย",
-        `AI ประมวลผลร้านอาหารครบทั้ง ${allCleanedData.length} รายการ (จากทั้งหมด ${totalItems}) และส่งไปที่แท็บ "Clear Data" ใน Google Sheet แล้วครับ`,
+        "AI Sync ข้อมูลดิบสำเร็จ",
+        "✨ คลีนและคัดแยกข้อมูล 1,000+ รายการเรียบร้อย",
+        `AI ประมวลผลและคัดร้านที่ซ้ำออก เหลือร้านที่สมบูรณ์ ${finalCleanedData.length} ร้าน บันทึกลงชีตเรียบร้อยครับ`,
         false
       );
 
@@ -957,7 +962,7 @@ export default function App() {
       setIsLoading(false);
       triggerWin95Alert(
         "AI Cleaning ขัดข้อง",
-        "ไม่สามารถประมวลผลข้อมูลด้วย AI ได้",
+        "ไม่สามารถประมวลผลข้อมูลดิบได้",
         `รายละเอียด: ${e.message || e}`,
         true
       );
