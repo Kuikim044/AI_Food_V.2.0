@@ -837,7 +837,7 @@ export default function App() {
     try {
       // Initialize Gemini API
       const genAI = new GoogleGenerativeAI(geminiApiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
 
       // Prepare data summary for AI to save tokens and avoid context limits
       const simplifiedData = dataToClean.map(item => ({
