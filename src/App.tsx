@@ -909,14 +909,14 @@ export default function App() {
           };
 
           return {
-            "title": getVal(['title', 'Name', 'ชื่อร้าน', 'ชื่อ', 'restaurant_name', 'name', 'Title', 'ชื่อร้านอาหาร'], 0),
-            "category": getVal(['categoryName', 'ประเภท', 'Category', 'category', 'ประเภทอาหาร', 'SubCategory'], 1),
-            "price": getVal(['priceRange', 'price', 'ราคา', 'Price', 'ราคาต่อหัว', 'Budget', 'price_range'], 2),
-            "neighborhood": getVal(['neighborhood', 'ย่าน', 'Area', 'area', 'สถานที่', 'Location', 'district'], 3),
-            "address": getVal(['address', 'ที่อยู่', 'Address', 'address_full'], 4),
-            "score": getVal(['totalScore', 'rating', 'คะแนน', 'Score', 'Rating', 'stars'], 5),
-            "reviews": getVal(['reviewsCount', 'reviews', 'จำนวนรีวิว', 'Reviews', 'review_count'], 6),
-            "mapUrl": getVal(['url', 'map', 'mapUrl', 'Google Maps URL', 'link', 'google_map_url'], 7)
+            "title": getVal(['title', 'Name', 'ชื่อร้าน', 'ชื่อ']),
+            "category": getVal(['categoryName', 'ประเภท', 'Category', 'category']),
+            "price": getVal(['price', 'priceRange', 'ราคา', 'Price']),
+            "neighborhood": getVal(['neighborhood', 'ย่าน', 'Area', 'area']),
+            "address": getVal(['address', 'ที่อยู่', 'Address']),
+            "score": getVal(['totalScore', 'rating', 'คะแนน', 'Score']),
+            "reviews": getVal(['reviewsCount', 'reviews', 'จำนวนรีวิว', 'Reviews']),
+            "mapUrl": getVal(['url', 'map', 'mapUrl', 'Google Maps URL'])
           };
         });
 
