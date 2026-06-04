@@ -174,6 +174,7 @@ export default function App() {
 
   // AI Cleaning & Sync Settings
   const [geminiApiKey, setGeminiApiKey] = useState<string>(localStorage.getItem("ai_food_gemini_api_key") || "");
+  const [geminiModel, setGeminiModel] = useState<string>(localStorage.getItem("ai_food_gemini_model") || "gemini-1.5-flash");
   const [googleScriptUrl, setGoogleScriptUrl] = useState<string>(localStorage.getItem("ai_food_google_script_url") || "https://script.google.com/macros/s/AKfycby9kvXskLoYF9EquSu_uerQ0tnk61c9-9jtdFEfh1HG1gF-u2aTDf8IYRIwmg5Y6boXQQ/exec");
   const [autoSync, setAutoSync] = useState<boolean>(localStorage.getItem("ai_food_auto_sync") === "true");
   const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -800,11 +801,13 @@ export default function App() {
   };
 
   // --- AI DATA CLEANING & SYNC ---
-  const saveSettings = (apiKey: string, scriptUrl: string, auto: boolean) => {
+  const saveSettings = (apiKey: string, scriptUrl: string, auto: boolean, model: string) => {
     setGeminiApiKey(apiKey);
+    setGeminiModel(model);
     setGoogleScriptUrl(scriptUrl);
     setAutoSync(auto);
     localStorage.setItem("ai_food_gemini_api_key", apiKey);
+    localStorage.setItem("ai_food_gemini_model", model);
     localStorage.setItem("ai_food_google_script_url", scriptUrl);
     localStorage.setItem("ai_food_auto_sync", auto.toString());
     setShowSettings(false);
@@ -837,7 +840,7 @@ export default function App() {
     try {
       // Initialize Gemini API
       const genAI = new GoogleGenerativeAI(geminiApiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+      const model = genAI.getGenerativeModel({ model: geminiModel });
 
       // Prepare data summary for AI to save tokens and avoid context limits
       const simplifiedData = dataToClean.map(item => ({
@@ -1389,6 +1392,22 @@ export default function App() {
 
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-black flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-purple-700" />
+                  <span>AI Model (เลือกเพื่อแก้ปัญหา 404):</span>
+                </label>
+                <select 
+                  value={geminiModel}
+                  onChange={(e) => setGeminiModel(e.target.value)}
+                  className="w-full win95-inset bg-white p-1.5 text-xs outline-none focus:border-blue-800 font-bold"
+                >
+                  <option value="gemini-1.5-flash">gemini-1.5-flash (แนะนำ - มาตรฐาน)</option>
+                  <option value="gemini-1.5-pro">gemini-1.5-pro (ฉลาดขึ้น/ช้าลง)</option>
+                  <option value="gemini-1.5-flash-8b">gemini-1.5-flash-8b (เร็วที่สุด)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-black flex items-center gap-1">
                   <Database className="w-3 h-3 text-green-700" />
                   <span>Google Apps Script URL:</span>
                 </label>
@@ -1426,7 +1445,7 @@ export default function App() {
                 Cancel
               </button>
               <button 
-                onClick={() => saveSettings(geminiApiKey, googleScriptUrl, autoSync)}
+                onClick={() => saveSettings(geminiApiKey, googleScriptUrl, autoSync, geminiModel)}
                 className="win95-button bg-blue-700 text-white font-bold text-xs min-w-[80px]"
               >
                 Save
